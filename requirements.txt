@@ -1,0 +1,6 @@
+ipykernel
+
+flask
+dataclasses-json
+pynif
+rdflib
