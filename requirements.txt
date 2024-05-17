@@ -4,3 +4,8 @@ flask
 dataclasses-json
 pynif
 rdflib
+tqdm
+ipywidgets
+sparqlwrapper
+
+torch

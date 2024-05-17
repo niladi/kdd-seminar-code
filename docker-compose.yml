@@ -1,0 +1,8 @@
+name: triplestore
+services:
+    graphdb-free:
+        ports:
+            - 7200:7200
+        image: dhlabbasel/graphdb-free
+        volumes:
+          - /Users/niladi/workspace/seminar-kdd/data/docker:/root/graphdb-import
