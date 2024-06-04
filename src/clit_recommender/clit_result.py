@@ -60,3 +60,10 @@ class ExperimentTask:
 class ClitResult:
     experiment_tasks: List[ExperimentTask]
     experiment_id: int
+
+
+#   Beispiel wie ein ClitResult reingeladen werden kann
+#
+#                with open(f"{FILENAME}", "r") as f:
+#                    j = f.read()
+#                    clit_result = ClitResult.from_json(j)

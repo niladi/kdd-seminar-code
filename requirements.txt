@@ -9,3 +9,6 @@ ipywidgets
 sparqlwrapper
 
 torch
+numpy
+matplotlib
+pandas
