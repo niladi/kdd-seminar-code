@@ -3,6 +3,7 @@ services:
     graphdb-free:
         ports:
             - 7200:7200
-        image: dhlabbasel/graphdb-free
+        image: ontotext/graphdb:10.6.3
         volumes:
-          - /Users/niladi/workspace/seminar-kdd/data/docker:/root/graphdb-import
+          - /Users/niladi/workspace/seminar-kdd/data/docker/import:/root/graphdb-import
+          - /Users/niladi/workspace/seminar-kdd/data/docker/data:/opt/graphdb/home/
