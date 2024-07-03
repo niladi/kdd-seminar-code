@@ -1,17 +1,22 @@
 # %%
 
-from typing import List
+from typing import List, Type, Union
 from abc import ABC, abstractmethod
 from copy import deepcopy
+
 import pandas as pd
-import itertools
-import numpy
-from tqdm.auto import tqdm
-from util import flat_map
+
+from torch import Tensor
+
+from clit_recommender.dataset import DataRow
+from clit_recommender.util import flat_map
+from clit_recommender.config import Config
+from clit_recommender.clit_result import Mention
 
 from functools import lru_cache
+import torch
 
-THRESHOLD = 1
+THRESHOLD = 0.7
 
 
 class Node(ABC):
@@ -40,12 +45,18 @@ class Node(ABC):
 
 
 class InputNode(Node):
+    system_index: int
+
+    def __init__(self, name: str, value: str, system_index: int) -> None:
+        super().__init__(name, value)
+        self.system_index = system_index
+
     def is_active(self) -> bool:
         # TDOD Threshold
-        return max(self.value) >= THRESHOLD
+        return self.value >= THRESHOLD
 
-    def operation(self, data: float):
-        super().operation(data)
+    def operation(self, data: DataRow):
+        return data.results[self.system_index]
 
 
 class CombinedNode(Node, ABC):
@@ -56,9 +67,9 @@ class CombinedNode(Node, ABC):
         self.input = input
 
     def is_active(self) -> bool:
-        return max(map(self.input, lambda x: x.value)) >= THRESHOLD
+        return max(map(lambda x: x.value, self.input)) >= THRESHOLD
 
-    def calc_on_input(self, data):
+    def calc_on_input(self, data: DataRow):
         return list(
             filter(lambda x: x is not None, map(lambda x: x.calc(data), self.input))
         )
@@ -67,18 +78,31 @@ class CombinedNode(Node, ABC):
     def operation(self, data):
         raise NotImplementedError()
 
+    @abstractmethod
+    def get_index() -> int:
+        raise NotImplementedError()
+
 
 class UnionNode(CombinedNode):
+    def get_index() -> int:
+        return 0
+
     def operation(self, data: float):
         return flat_map(lambda x: x, self.calc_on_input(data))
 
 
 class IntersectionNode(CombinedNode):
+    def get_index() -> int:
+        return 1
+
     def operation(self, data: float):
         return set.intersection(*map(set, self.calc_on_input(data)))
 
 
 class MajorityVoting(CombinedNode):
+    def get_index() -> int:
+        return 2
+
     def operation(self, data: float):
         res = self.calc_on_input(data)
         min_size = int(len(res) / 2) + 1
@@ -129,11 +153,11 @@ class Graph:
             self.levels.append(Level("Level_" + str(i), input_node))
             input_node = self.levels[-1].OuputNodes()
 
-    def forward(self, input: List[float]):
+    def forward(self, data_row: DataRow) -> List[Mention]:
         last_level = self.levels[-1]
         for i in last_level.OuputNodes():
             if i.is_active():
-                i.operation(input)
+                return i.calc(data_row)
 
     def valid(self) -> bool:
         last_level = self.levels[-1]
@@ -150,13 +174,15 @@ class Graph:
         matrix = []
         for i_l, l in enumerate(self.levels):
             for i_n, n in enumerate(l.input):
-                matrix.append(
-                    [
-                        l.union.input[i_n].value,
-                        l.intersection.input[i_n].value,
-                        l.majority_voting.input[i_n].value,
-                    ]
+                row = [None] * 3
+                row[UnionNode.get_index()] = float(l.union.input[i_n].value)
+                row[IntersectionNode.get_index()] = float(
+                    l.intersection.input[i_n].value
                 )
+                row[MajorityVoting.get_index()] = float(
+                    l.majority_voting.input[i_n].value
+                )
+                matrix.append(row)
         return matrix
 
     def to_dataframe(self) -> pd.DataFrame:
@@ -168,58 +194,50 @@ class Graph:
                 row = {
                     "LEVEL": i_l,
                     "INPUT": n.name,
-                    "UNION": m[0],
-                    "INTERS": m[1],
-                    "MAJORITY": m[2],
+                    "UNION": m[UnionNode.get_index()],
+                    "INTERS": m[IntersectionNode.get_index()],
+                    "MAJORITY": m[MajorityVoting.get_index()],
                 }
                 data.append(row)
         df = pd.DataFrame(data)
         return df
 
-    def from_matrix(input_size: int, depth: int, matrix: List[List[float]]):
-        g = Graph(depth, [InputNode("MD" + str(i), 0) for i in range(input_size)])
+    @staticmethod
+    def create(config: Config, value_matrix: Union[List[List[float]], Tensor] = None):
+        depth = config.depth
+        input_size = config.md_modules_count
+
+        g = Graph(depth, [InputNode("MD" + str(i), 0, i) for i in range(input_size)])
+
+        if value_matrix is None:
+            return g
+
+        i = 0
         for i_l, l in enumerate(g.levels):
             for i_n, n in enumerate(l.input):
-                m = matrix[i_l + i_n]
-                l.union.input[i_n].value = m[0]
-                l.intersection.input[i_n].value = m[1]
-                l.majority_voting.input[i_n].value = m[2]
+                m = value_matrix[i]
+                l.union.input[i_n].value = m[UnionNode.get_index()]
+                l.intersection.input[i_n].value = m[IntersectionNode.get_index()]
+                l.majority_voting.input[i_n].value = m[MajorityVoting.get_index()]
+                i += 1
         return g
 
+    @staticmethod
+    def create_by_last_as_vector_and_label(
+        config: Config,
+        value_matrix: Union[List[List[float]], Tensor],
+        last_level_values: Union[List[float], Tensor],
+        last_level_type: Type[CombinedNode],
+    ):
+        assert int(config.calculate_output_size() / 3 - len(value_matrix)) == len(
+            last_level_values
+        )
 
-# %%
+        new_matrix = deepcopy(value_matrix)
 
-input_size = 10
-depth = 3
+        for v in last_level_values:
+            row = [0] * 3
+            row[last_level_type.get_index()] = v
+            new_matrix.append(row)
 
-g = Graph(depth, [InputNode("MD" + str(i), 0) for i in range(input_size)])
-g.to_dataframe()
-
-# %%
-
-
-size = 0
-for n in range(depth):
-    size += input_size + n * 3
-
-matrix = []
-
-valid_graphes = []
-permutations = 2 ** (size * 3)
-i = 0
-
-pbar = tqdm(total=permutations)
-while i < permutations:
-    numpy.binary_repr(i, width=size * 3)
-    pbar.update(1)
-    i += 1
-
-for p in tqdm(range()):
-    res = [int(i) for i in bin(p)[2:]]
-    matrix = [[res[j] for j in range(k, k + 3)] for k in range(0, size, 3)]
-    g = Graph.from_matrix(input_size, depth, matrix)
-    if g.valid():
-        valid_graphes.append(g)
-
-
-# %%
+        return Graph.create(config, new_matrix)

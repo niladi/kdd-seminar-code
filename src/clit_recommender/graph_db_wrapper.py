@@ -4,6 +4,8 @@ from collections import defaultdict
 from typing import Dict, List, Tuple
 from SPARQLWrapper import JSON, SPARQLWrapper
 
+ACTUAL_KEY = "ACTUAL"
+
 
 class GraphDBWrapper:
 
@@ -48,32 +50,35 @@ class GraphDBWrapper:
         """
         return [(i["c"], i["t"]) for i in self._query(query)]
 
+    def get_count(self) -> int:
+        query = """
+            select (count(*) as ?count)
+            where {
+                ?c a nif:Context .
+                ?c nif:isString ?t .
+            }"""
+        return int(next(self._query(query), None)["count"])
+
     def get_mentions_of_context(
         self, context_uri: str
     ) -> Dict[str, List[Tuple[str, int]]]:
         query = f"""
             select ?s ?t ?o 
             where {{
-                ?m a aifb:ClitResult .
-                ?m aifb:ofSystem ?s .
+                
                 ?m nif:referenceContext <{context_uri}> .
                 ?m nif:beginIndex ?o .
                 ?m nif:anchorOf ?t .
+                OPTIONAL {{
+                    ?m a aifb:ClitResult .
+                    ?m aifb:ofSystem ?s .
+                }}
             }}
         """
         d = defaultdict(list)
 
         for i in self._query(query):
-            d[i["s"]].append((i["t"], int(i["o"])))
+            m = (i["t"], int(i["o"]))
+            s = i["s"] if "s" in i else ACTUAL_KEY
+            d[s].append(m)
         return d
-
-
-# %%
-
-w = GraphDBWrapper()
-
-w.get_mentions_of_context(
-    "http://www.mpi-inf.mpg.de/yago-naga/aida/download/KORE50.tar.gz/AIDA.tsv/CEL01#char=0,"
-)
-
-# %%

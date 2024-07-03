@@ -10,16 +10,15 @@ class Logger:
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL)
-@dataclass
+@dataclass(frozen=True)
 class Mention:
     mention: str
     offset: int
-    assignment: Optional[str]
-    detection_confidence: float
-    possible_assignments: List[str]
-    original_mention: str
-    original_without_stopwords: str
-    logger: Logger
+    # assignment: Optional[str]
+    # detection_confidence: float
+    # possible_assignments: List[str]
+    # original_mention: str
+    # original_without_stopwords: str
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL)
