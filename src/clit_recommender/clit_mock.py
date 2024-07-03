@@ -14,7 +14,6 @@ from clit_recommender.config import Config
 from clit_recommender.clit_result import Mention
 
 from functools import lru_cache
-import torch
 
 THRESHOLD = 0.7
 
@@ -96,22 +95,26 @@ class IntersectionNode(CombinedNode):
         return 1
 
     def operation(self, data: float):
-        return set.intersection(*map(set, self.calc_on_input(data)))
+        inputs = list(map(set, self.calc_on_input(data)))
+        if inputs is None or len(inputs) == 0:
+            return set()
+        return set.intersection(*inputs)
 
 
 class MajorityVoting(CombinedNode):
     def get_index() -> int:
         return 2
 
-    def operation(self, data: float):
+    def operation(self, data):
         res = self.calc_on_input(data)
         min_size = int(len(res) / 2) + 1
         majority_votes = {}
-        for item in res:
-            if item in majority_votes:
-                majority_votes[str(item)] += 1
-            else:
-                majority_votes[str(item)] = 1
+        for mentions in res:
+            for mention in mentions:
+                if mention in majority_votes:
+                    majority_votes[mention] += 1
+                else:
+                    majority_votes[mention] = 1
         majority_voted = [
             item for item, count in majority_votes.items() if count >= min_size
         ]
@@ -157,7 +160,7 @@ class Graph:
         last_level = self.levels[-1]
         for i in last_level.OuputNodes():
             if i.is_active():
-                return i.calc(data_row)
+                return set(i.calc(data_row))
 
     def valid(self) -> bool:
         last_level = self.levels[-1]

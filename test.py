@@ -1,7 +1,16 @@
 # %%
 
+from clit_mock import Graph, IntersectionNode, MajorityVoting, UnionNode
+from config import Config
+from dataset import ClitRecommenderDataset
 import torch
 from transformers import LongformerModel, LongformerTokenizer
+from tqdm.auto import tqdm
+import itertools
+
+from util import flat_map
+
+# %%
 
 # Initialize the model and tokenizer
 model_name = "allenai/longformer-base-4096"
@@ -37,5 +46,67 @@ test: int
 
 def foo(test: int) -> int:
     return test
+
+
 foo("baum")
+# %%
+
+
+def generate_tensors(n):
+    tensors = []
+    for i in range(2**n):
+        binary = bin(i)[2:].zfill(n)
+        tensor = torch.tensor([int(bit) for bit in binary])
+        tensors.append(tensor)
+    return tensors
+
+
+# Create tensor lists
+
+
+# Combine tensor lists using itertools
+combined_tensors = itertools.product(
+    [[]], generate_tensors(10), [IntersectionNode, UnionNode, MajorityVoting]
+)
+
+
+graphs = []
+c = Config(depth=1, md_modules_count=10)
+
+for combined_tensor in tqdm(combined_tensors):
+    graphs.append(
+        Graph.create_by_last_as_vector_and_label(
+            c,
+            combined_tensor[0],
+            combined_tensor[1],
+            combined_tensor[2],
+        )
+    )
+# %%
+
+for data in tqdm(ClitRecommenderDataset(c, start=0, end=10)):
+    for row in data:
+        best_results = []
+        current_len = 0
+        current_size = 0
+        actual = set(row.actual)
+        for graph in graphs:
+            res = graph.forward(row)
+            if res is None or len(res) == 0:
+                continue
+            result = set.intersection(actual, set(res))
+            s = sum(map(sum, graph.to_matrix()))
+
+            if len(result) == current_len:
+                if s < current_size:
+                    best_results = [graph]
+                    current_size = s
+                elif s == current_size:
+                    best_results.append(graph)
+            elif len(result) > current_len:
+                best_results = [graph]
+                current_len = len(result)
+                current_size = s
+
+
 # %%

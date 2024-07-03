@@ -78,3 +78,12 @@ class TestClitMock(unittest.TestCase):
                 ]
             ),
         )
+
+        g = Graph.create_by_last_as_vector_and_label(
+            Config(depth=1, md_modules_count=2),
+            [],
+            [0.9, 0.8],
+            MajorityVoting,
+        )
+
+        self.assertSetEqual(g.forward(row), set([Mention("Mention 2", 3)]))
