@@ -15,14 +15,8 @@ class Evaluation:
     def process_batch(self, batch: Iterable[DataRow]) -> Metrics:
         return sum(map(self.process_data_row, batch), Metrics.zeros())
 
-    def process_data_row(self, data_row: DataRow) -> Metrics:
-        gold = set(data_row.actual)
-        predicted = self.processor.process_batch([data_row])
-
-        pred_spans = set(
-            filter(lambda x: x is not None, map(operator.itemgetter(0), predicted))
-        )
-
+    @staticmethod
+    def evaluate(gold, pred_spans, doc_title=""):
         num_gold_spans = len(gold)
         tp = len(pred_spans & gold)
         fp = len(pred_spans - gold)
@@ -39,10 +33,19 @@ class Evaluation:
             num_docs=1,
             example_errors=[
                 {
-                    "doc_title": data_row.context_text[:20],
+                    "doc_title": doc_title,
                     "fp_errors": fp_errors,
                     "fn_errors": fn_errors,
                 }
             ],
         )
         return metrics
+
+    def process_data_row(self, data_row: DataRow) -> Metrics:
+        gold = set(data_row.actual)
+        predicted = self.processor.process_batch([data_row])
+
+        pred_spans = set(
+            filter(lambda x: x is not None, map(operator.itemgetter(0), predicted))
+        )
+        return Evaluation.evaluate(gold, pred_spans, data_row.context_text[:20])

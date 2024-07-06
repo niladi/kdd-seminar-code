@@ -5,6 +5,8 @@ dataclasses-json
 pynif
 rdflib
 tqdm
+pqdm
+
 ipywidgets
 sparqlwrapper
 

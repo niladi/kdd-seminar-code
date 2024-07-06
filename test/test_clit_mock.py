@@ -10,16 +10,18 @@ from clit_recommender.clit_mock import (
 from clit_recommender.config import Config
 from clit_recommender.clit_result import Mention
 from clit_recommender.dataset import DataRow
+import json
 
 
 class TestClitMock(unittest.TestCase):
+
     def test_create(self):
         c = Config()
-        random_tensor = torch.randn(c.calculate_output_size())
+        random_tensor = torch.randn(c.calculate_output_size(), dtype=torch.float32)
         random_tensor = random_tensor.reshape(int(c.calculate_output_size() / 3), 3)
         g = Graph.create(c, random_tensor)
 
-        self.assertEqual(str(random_tensor.tolist()), str(g.to_matrix()))
+        self.assertEqual(json.dumps(random_tensor.tolist()), json.dumps(g.to_matrix()))
 
     def test_create_by_label(self):
         g = Graph.create_by_last_as_vector_and_label(
@@ -39,7 +41,7 @@ class TestClitMock(unittest.TestCase):
             [0.0, 0.0, 0.4],
         ]
 
-        self.assertEqual(str(g.to_matrix()), str(expected))
+        self.assertEqual(json.dumps(g.to_matrix()), json.dumps(expected))
 
     def test_operation(self):
         row = DataRow(

@@ -1,6 +1,6 @@
 # %%
 
-from typing import List, Type, Union
+from typing import List, Tuple, Type, Union
 from abc import ABC, abstractmethod
 from copy import deepcopy
 
@@ -173,7 +173,7 @@ class Graph:
                     one_is_active = True
         return one_is_active
 
-    def to_matrix(self) -> List[List[float]]:
+    def to_matrix(self) -> Tuple[Tuple[float]]:
         matrix = []
         for i_l, l in enumerate(self.levels):
             for i_n, n in enumerate(l.input):
@@ -186,7 +186,7 @@ class Graph:
                     l.majority_voting.input[i_n].value
                 )
                 matrix.append(row)
-        return matrix
+        return tuple(map(tuple, matrix))
 
     def to_dataframe(self) -> pd.DataFrame:
         data = []
@@ -206,7 +206,10 @@ class Graph:
         return df
 
     @staticmethod
-    def create(config: Config, value_matrix: Union[List[List[float]], Tensor] = None):
+    def create(
+        config: Config,
+        value_matrix: Union[List[List[float]], Tensor, Tuple[Tuple[float]]] = None,
+    ):
         depth = config.depth
         input_size = config.md_modules_count
 
@@ -228,8 +231,8 @@ class Graph:
     @staticmethod
     def create_by_last_as_vector_and_label(
         config: Config,
-        value_matrix: Union[List[List[float]], Tensor],
-        last_level_values: Union[List[float], Tensor],
+        value_matrix: Union[List[List[float]], Tensor, Tuple[Tuple[float]]],
+        last_level_values: Union[List[float], Tensor, Tuple[float]],
         last_level_type: Type[CombinedNode],
     ):
         assert int(config.calculate_output_size() / 3 - len(value_matrix)) == len(

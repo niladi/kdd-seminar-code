@@ -1,0 +1,23 @@
+-> Gleiche Graphs mehrere Datenpunkte
+-> Majority: Bin ich relativ Frei (vielleicht Funktion)
+-> MedMentions Exit 
+
+-> Evaluation -> Unterscheidung zwischen Recommender Ergebnisse und Mention Detection Ergebnisse
+
+-> ConLL und Rel
+
+-> Reference in 
+    -> Better Together als Reference 
+    -> Werte aus den Papers
+    -> Ergebnisse durch ClitMock
+    -> Temperature Graph
+
+-> Precission Kritik
+    -> True Psoitive besser bei Union
+    -> False Positive ist bei Intersection besser ...
+
+-> Poster 
+    -> Approach
+    -> Evaluierung
+
+-> Dyldo
