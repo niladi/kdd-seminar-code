@@ -2,18 +2,18 @@ import itertools
 from multiprocessing import freeze_support
 from typing import List
 
-from clit_recommender.metrics import Metrics
+from domain.metrics import Metrics
 
-from clit_recommender.evaluation import Evaluation
+from process.evaluation import Evaluation
 
-from clit_recommender.dataset import ClitRecommenderDataset, DataRow
-from clit_recommender.clit_mock import (
+from data.dataset import ClitRecommenderDataset, DataRow
+from models.clit_mock import (
     Graph,
     IntersectionNode,
     MajorityVoting,
     UnionNode,
 )
-from clit_recommender.lmdb_wrapper import LmdbImmutableDict
+from data.lmdb_wrapper import LmdbImmutableDict
 from clit_recommender.config import Config
 import torch
 from pqdm.processes import pqdm

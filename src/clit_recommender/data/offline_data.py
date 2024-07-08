@@ -8,11 +8,11 @@ import torch
 from transformers import AutoModel, AutoTokenizer
 
 
-from clit_recommender.dataset import ClitRecommenderDataset, DataRow
+from data.dataset import ClitRecommenderDataset, DataRow
 
 from clit_recommender.config import Config
 from clit_recommender.util import flat_map
-from clit_recommender.lmdb_wrapper import LmdbImmutableDict
+from data.lmdb_wrapper import LmdbImmutableDict
 
 
 class OfflineData:

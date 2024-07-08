@@ -12,12 +12,12 @@ from tqdm.auto import tqdm, trange
 from transformers import get_linear_schedule_with_warmup
 from clit_recommender.util import empty_cache
 
-from clit_recommender.clit_result import Mention
-from clit_recommender.evaluation import Evaluation
+from domain.clit_result import Mention
+from process.evaluation import Evaluation
 from clit_recommender.config import Config
-from clit_recommender.dataset import ClitRecommenderDataset, DataRow
-from clit_recommender.inference import ClitRecommeder
-from clit_recommender.metrics import Metrics, MetricsHolder
+from data.dataset import ClitRecommenderDataset, DataRow
+from process.inference import ClitRecommeder
+from domain.metrics import Metrics, MetricsHolder
 
 
 def train():

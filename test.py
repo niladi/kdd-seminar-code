@@ -1,8 +1,8 @@
 # %%
 
-from clit_mock import Graph, IntersectionNode, MajorityVoting, UnionNode
+from models.clit_mock import Graph, IntersectionNode, MajorityVoting, UnionNode
 from config import Config
-from dataset import ClitRecommenderDataset
+from data.dataset import ClitRecommenderDataset
 import torch
 from transformers import LongformerModel, LongformerTokenizer
 from tqdm.auto import tqdm

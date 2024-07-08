@@ -20,4 +20,4 @@
     -> Approach
     -> Evaluierung
 
--> Dyldo
+-> Shuffle von Daten

@@ -8,10 +8,10 @@ import pandas as pd
 
 from torch import Tensor
 
-from clit_recommender.dataset import DataRow
+from data.dataset import DataRow
 from clit_recommender.util import flat_map
 from clit_recommender.config import Config
-from clit_recommender.clit_result import Mention
+from domain.clit_result import Mention
 
 from functools import lru_cache
 

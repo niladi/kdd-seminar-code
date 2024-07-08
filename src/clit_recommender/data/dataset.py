@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 from typing import Dict, Iterator, List
 
-from clit_recommender.clit_result import Mention
-from clit_recommender.graph_db_wrapper import ACTUAL_KEY, GraphDBWrapper
+from domain.clit_result import Mention
+from data.graph_db_wrapper import ACTUAL_KEY, GraphDBWrapper
 from clit_recommender.config import Config
 
 from torch.utils.data import IterableDataset

@@ -1,15 +1,15 @@
 import torch
 import unittest
 
-from clit_recommender.clit_mock import (
+from models.clit_mock import (
     Graph,
     IntersectionNode,
     MajorityVoting,
     UnionNode,
 )
 from clit_recommender.config import Config
-from clit_recommender.clit_result import Mention
-from clit_recommender.dataset import DataRow
+from domain.clit_result import Mention
+from data.dataset import DataRow
 import json
 
 

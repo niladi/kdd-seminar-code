@@ -1,9 +1,11 @@
 import operator
-from dataset import DataRow
+from data.dataset import DataRow
+
 from torch import Tensor, nn
 
+from clit_recommender.models.base import ClitRecommenderModel
 from clit_recommender.config import Config
-from clit_recommender.clit_mock import Graph
+from models.clit_mock import Graph
 
 
 class ClitRecommenderLoss(nn.Module):
@@ -31,14 +33,11 @@ class ClitRecommenderLoss(nn.Module):
         return loss
 
 
-class ClitRecommenderModel(nn.Module):
-
-    _config: Config
+class ClitRecommenderModelFull(ClitRecommenderModel):
     _loss: ClitRecommenderLoss
 
     def __init__(self, config: Config) -> None:
-        super().__init__()
-        self._config = config
+        super().__init__(config)
 
         # Linear function
         self._fc1 = nn.Linear(

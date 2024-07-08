@@ -9,7 +9,7 @@ from rdflib import RDF, Graph, Literal, Namespace
 from tqdm.auto import tqdm
 
 from clit_recommender import DATASETS_PATH, CLIT_RESULTS_PATH, MD_ONLY
-from clit_recommender.clit_result import ClitResult, Document, ExperimentTask, Mention
+from domain.clit_result import ClitResult, Document, ExperimentTask, Mention
 from clit_recommender.util import flat_map, iterate_dirs
 
 

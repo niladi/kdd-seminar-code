@@ -1,8 +1,8 @@
 import operator
 from typing import Iterable
-from clit_recommender.dataset import DataRow
-from clit_recommender.inference import ClitRecommeder
-from clit_recommender.metrics import Metrics
+from data.dataset import DataRow
+from process.inference import ClitRecommeder
+from domain.metrics import Metrics
 from tqdm.auto import tqdm
 
 
