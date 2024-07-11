@@ -1,11 +1,13 @@
 import operator
 from data.dataset import DataRow
 
+from clit_recommender.domain.metrics import Metrics
+
 from torch import Tensor, nn
 
-from clit_recommender.models.base import ClitRecommenderModel
+from clit_recommender.models.base import ClitRecommenderModel, ModelResult
 from clit_recommender.config import Config
-from models.clit_mock import Graph
+from clit_recommender.models.clit_mock import Graph
 
 
 class ClitRecommenderLoss(nn.Module):
@@ -14,23 +16,8 @@ class ClitRecommenderLoss(nn.Module):
 
     def forward(self, outputs, targets):
 
-        gold = set(targets)
-
-        if outputs is None:
-            return 1
-
-        pred_spans = set(map(operator.itemgetter(1), outputs))
-
-        num_gold_spans = len(gold)
-        tp = len(pred_spans & gold)
-        fp = len(pred_spans - gold)
-
-        # Calculate precision
-        precision = tp / (tp + fp + 1e-8)  # Add epsilon to avoid division by zero
-
-        # We minimize (1 - precision) as the loss
-        loss = 1 - precision
-        return loss
+        metrics = Metrics.evaluate_results(outputs, targets)
+        return 1 - metrics.get_f1()
 
 
 class ClitRecommenderModelFull(ClitRecommenderModel):
@@ -64,4 +51,4 @@ class ClitRecommenderModelFull(ClitRecommenderModel):
             result = Graph.create(self._config, logits.tolist()).forward(data_row)
             loss = self._loss(result, data_row.actual)
 
-        return result, logits, loss
+        return ModelResult(logits, loss)

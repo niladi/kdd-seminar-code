@@ -61,6 +61,35 @@ class Metrics:
     @classmethod
     def zeros(cls):
         return Metrics(num_gold_spans=0, tp=0, fp=0, fn=0)
+    
+    @classmethod
+    def evaluate_matrices()
+
+    @classmethod
+    def evaluate_results(cls, gold, pred_spans, doc_title=""):
+        num_gold_spans = len(gold)
+        tp = len(pred_spans & gold)
+        fp = len(pred_spans - gold)
+        fn = len(gold - pred_spans)
+
+        fp_errors = sorted(list(pred_spans - gold), key=lambda x: x[1])[:5]
+        fn_errors = sorted(list(gold - pred_spans), key=lambda x: x[1])[:5]
+
+        metrics = Metrics(
+            num_gold_spans=num_gold_spans,
+            tp=tp,
+            fp=fp,
+            fn=fn,
+            num_docs=1,
+            example_errors=[
+                {
+                    "doc_title": doc_title,
+                    "fp_errors": fp_errors,
+                    "fn_errors": fn_errors,
+                }
+            ],
+        )
+        return metrics
 
 
 @dataclass

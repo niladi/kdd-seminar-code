@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from time import time
 from typing import Type
 from dataclasses_json import dataclass_json
-from clit_recommender.models.base import ClitRecommenderModel
-from clit_recommender.models.one_depth import ClitRecommenderModelOneDepth
 
 
 @dataclass_json
@@ -18,7 +16,9 @@ class Config:
     lm_hidden_size: int = 768
     device = "mps"
     experiment_name: str = None
-    model: Type[ClitRecommenderModel] = ClitRecommenderModelOneDepth
+    model: str = "ClitRecommenderModelOneDepth"
+    load_best_graph: bool = True
+    threshold: int = 0.5
 
     def __post_init__(self):
         if self.experiment_name is None:
@@ -28,3 +28,7 @@ class Config:
         i = self.md_modules_count
         j = self.depth
         return int((j * (2 * i + 3 * j - 3) * 3) / 2)
+
+
+BEST_GRAPHS_LMDB_FILE = "best_graphs.lmdb"
+BEST_GRAPHS_JSON_FILE = "best_graphs.json"

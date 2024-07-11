@@ -24,7 +24,7 @@ class TestClitMock(unittest.TestCase):
         self.assertEqual(json.dumps(random_tensor.tolist()), json.dumps(g.to_matrix()))
 
     def test_create_by_label(self):
-        g = Graph.create_by_last_as_vector_and_label(
+        g = Graph.create_1_dim(
             Config(depth=2, md_modules_count=2),
             [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]],
             [0.7, 0.8, 0.1, 0.2, 0.4],
@@ -54,7 +54,7 @@ class TestClitMock(unittest.TestCase):
             [Mention("Mention 2", 3)],
         )
 
-        g = Graph.create_by_last_as_vector_and_label(
+        g = Graph.create_1_dim(
             Config(depth=1, md_modules_count=2),
             [],
             [0.9, 0.8],
@@ -63,7 +63,7 @@ class TestClitMock(unittest.TestCase):
 
         self.assertSetEqual(g.forward(row), set([Mention("Mention 2", 3)]))
 
-        g = Graph.create_by_last_as_vector_and_label(
+        g = Graph.create_1_dim(
             Config(depth=1, md_modules_count=2),
             [],
             [0.9, 0.8],
@@ -81,7 +81,7 @@ class TestClitMock(unittest.TestCase):
             ),
         )
 
-        g = Graph.create_by_last_as_vector_and_label(
+        g = Graph.create_1_dim(
             Config(depth=1, md_modules_count=2),
             [],
             [0.9, 0.8],

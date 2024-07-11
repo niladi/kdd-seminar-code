@@ -1,8 +1,10 @@
 import operator
-from typing import Iterable
-from data.dataset import DataRow
-from process.inference import ClitRecommeder
-from domain.metrics import Metrics
+from typing import Iterable, Tuple
+
+from clit_recommender.models.clit_mock import Graph
+from clit_recommender.data.dataset import DataRow
+from clit_recommender.process.inference import ClitRecommeder
+from clit_recommender.domain.metrics import Metrics
 from tqdm.auto import tqdm
 
 
@@ -15,37 +17,12 @@ class Evaluation:
     def process_batch(self, batch: Iterable[DataRow]) -> Metrics:
         return sum(map(self.process_data_row, batch), Metrics.zeros())
 
-    @staticmethod
-    def evaluate(gold, pred_spans, doc_title=""):
-        num_gold_spans = len(gold)
-        tp = len(pred_spans & gold)
-        fp = len(pred_spans - gold)
-        fn = len(gold - pred_spans)
-
-        fp_errors = sorted(list(pred_spans - gold), key=lambda x: x[1])[:5]
-        fn_errors = sorted(list(gold - pred_spans), key=lambda x: x[1])[:5]
-
-        metrics = Metrics(
-            num_gold_spans=num_gold_spans,
-            tp=tp,
-            fp=fp,
-            fn=fn,
-            num_docs=1,
-            example_errors=[
-                {
-                    "doc_title": doc_title,
-                    "fp_errors": fp_errors,
-                    "fn_errors": fn_errors,
-                }
-            ],
-        )
-        return metrics
-
-    def process_data_row(self, data_row: DataRow) -> Metrics:
+    def process_data_row(self, data_row: DataRow) -> Tuple[Metrics, Metrics]:
         gold = set(data_row.actual)
-        predicted = self.processor.process_batch([data_row])
-
-        pred_spans = set(
-            filter(lambda x: x is not None, map(operator.itemgetter(0), predicted))
+        result = self.processor.process_batch([data_row])[0]
+        predicted = Graph.create(self.processor._config, result.logits).forward(
+            data_row
         )
-        return Evaluation.evaluate(gold, pred_spans, data_row.context_text[:20])
+
+        pred_spans = set(predicted)
+        return Metrics.evaluate_results(gold, pred_spans, data_row.context_text[:20])

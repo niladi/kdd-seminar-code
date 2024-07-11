@@ -8,23 +8,23 @@ import pandas as pd
 
 from torch import Tensor
 
-from data.dataset import DataRow
+from clit_recommender.data.dataset import DataRow
 from clit_recommender.util import flat_map
 from clit_recommender.config import Config
-from domain.clit_result import Mention
+from clit_recommender.domain.clit_result import Mention
 
 from functools import lru_cache
-
-THRESHOLD = 0.7
 
 
 class Node(ABC):
     name: str
     value: float
+    threshold: float
 
-    def __init__(self, name: str, value: str) -> None:
+    def __init__(self, name: str, value: str, threshold: float) -> None:
         self.name = name
         self.value = value
+        self.threshold = threshold
 
     @lru_cache(maxsize=None)
     def calc(self, data):
@@ -46,13 +46,15 @@ class Node(ABC):
 class InputNode(Node):
     system_index: int
 
-    def __init__(self, name: str, value: str, system_index: int) -> None:
-        super().__init__(name, value)
+    def __init__(
+        self, name: str, value: str, threshold: float, system_index: int
+    ) -> None:
+        super().__init__(name, value, threshold)
         self.system_index = system_index
 
     def is_active(self) -> bool:
         # TDOD Threshold
-        return self.value >= THRESHOLD
+        return self.value >= self.threshold
 
     def operation(self, data: DataRow):
         return data.results[self.system_index]
@@ -61,12 +63,14 @@ class InputNode(Node):
 class CombinedNode(Node, ABC):
     input: List[Node]
 
-    def __init__(self, name: str, value: str, input: List[Node]) -> None:
-        super().__init__(name, value)
+    def __init__(
+        self, name: str, value: str, threshold: float, input: List[Node]
+    ) -> None:
+        super().__init__(name, value, threshold)
         self.input = input
 
     def is_active(self) -> bool:
-        return max(map(lambda x: x.value, self.input)) >= THRESHOLD
+        return max(map(lambda x: x.value, self.input)) >= self.threshold
 
     def calc_on_input(self, data: DataRow):
         return list(
@@ -127,15 +131,15 @@ class Level:
     intersection: IntersectionNode
     union: UnionNode
 
-    def __init__(self, level_name: str, nodes: List[Node]):
+    def __init__(self, level_name: str, threshold: float, nodes: List[Node]):
         self.input = nodes
         self.majority_voting = MajorityVoting(
-            level_name + "_majority_voting", 0, deepcopy(nodes)
+            level_name + "_majority_voting", 0, threshold, deepcopy(nodes)
         )
         self.intersection = IntersectionNode(
-            level_name + "_intersection", 0, deepcopy(nodes)
+            level_name + "_intersection", 0, threshold, deepcopy(nodes)
         )
-        self.union = UnionNode(level_name + "_union", 0, deepcopy(nodes))
+        self.union = UnionNode(level_name + "_union", 0, threshold, deepcopy(nodes))
 
     def OuputNodes(self) -> List[Node]:
         return deepcopy(self.input) + [
@@ -149,18 +153,18 @@ class Graph:
     levels: List[Level]
     intput_size: int
 
-    def __init__(self, depth: int, input_node: List[InputNode]) -> None:
+    def __init__(
+        self, depth: int, threshold: float, input_node: List[InputNode]
+    ) -> None:
         self.levels = []
         self.input_size = len(input_node)
         for i in range(depth):
-            self.levels.append(Level("Level_" + str(i), input_node))
+            self.levels.append(Level("Level_" + str(i), threshold, input_node))
             input_node = self.levels[-1].OuputNodes()
 
     def forward(self, data_row: DataRow) -> List[Mention]:
-        last_level = self.levels[-1]
-        for i in last_level.OuputNodes():
-            if i.is_active():
-                return set(i.calc(data_row))
+        level = self.get_last_level_node()
+        return [] if level is None else set(level.calc(data_row))
 
     def valid(self) -> bool:
         last_level = self.levels[-1]
@@ -212,8 +216,13 @@ class Graph:
     ):
         depth = config.depth
         input_size = config.md_modules_count
+        threshold = config.threshold
 
-        g = Graph(depth, [InputNode("MD" + str(i), 0, i) for i in range(input_size)])
+        g = Graph(
+            depth,
+            threshold,
+            [InputNode("MD" + str(i), 0, threshold, i) for i in range(input_size)],
+        )
 
         if value_matrix is None:
             return g
@@ -228,22 +237,36 @@ class Graph:
                 i += 1
         return g
 
+    def get_last_level_node(self) -> CombinedNode:
+        last_level = self.levels[-1]
+        for i in last_level.OuputNodes():
+            if i.is_active():
+                return i
+
+    def get_last_level_tuple(self) -> Tuple[Tuple[float], Type[CombinedNode]]:
+        node = self.get_last_level_node()
+        return tuple(map(lambda x: x.value, node.input)), type(node)
+
     @staticmethod
-    def create_by_last_as_vector_and_label(
+    def create_1_dim(
         config: Config,
         value_matrix: Union[List[List[float]], Tensor, Tuple[Tuple[float]]],
         last_level_values: Union[List[float], Tensor, Tuple[float]],
-        last_level_type: Type[CombinedNode],
+        last_level_type: Union[Type[CombinedNode], int],
     ):
         assert int(config.calculate_output_size() / 3 - len(value_matrix)) == len(
             last_level_values
         )
 
         new_matrix = deepcopy(value_matrix)
-
+        index = (
+            last_level_type
+            if isinstance(last_level_type, int)
+            else last_level_type.get_index()
+        )
         for v in last_level_values:
             row = [0] * 3
-            row[last_level_type.get_index()] = v
+            row[index] = v
             new_matrix.append(row)
 
         return Graph.create(config, new_matrix)

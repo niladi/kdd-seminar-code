@@ -1,30 +1,25 @@
 import itertools
+import json
 from multiprocessing import freeze_support
+from os.path import join
 from typing import List
 
+
+import torch
 from domain.metrics import Metrics
-
+from pqdm.processes import pqdm
 from process.evaluation import Evaluation
+from tqdm.auto import tqdm
 
-from data.dataset import ClitRecommenderDataset, DataRow
-from models.clit_mock import (
+from clit_recommender.config import Config, BEST_GRAPHS_JSON_FILE, BEST_GRAPHS_LMDB_FILE
+from clit_recommender.data.dataset import ClitRecommenderDataset, DataRow
+from clit_recommender.data.lmdb_wrapper import LmdbImmutableDict
+from clit_recommender.models.clit_mock import (
     Graph,
     IntersectionNode,
     MajorityVoting,
     UnionNode,
 )
-from data.lmdb_wrapper import LmdbImmutableDict
-from clit_recommender.config import Config
-import torch
-from pqdm.processes import pqdm
-
-from tqdm.auto import tqdm
-from pqdm.processes import pqdm
-from os.path import join
-import json
-
-BEST_GRAPHS_LMDB_FILE = "best_graphs.lmdb"
-BEST_GRAPHS_JSON_FILE = "best_graphs.json"
 
 
 def generate_tensors(n):
@@ -91,11 +86,11 @@ if __name__ == "__main__":
     )
 
     _graphs = []
-    _c = Config(depth=1, md_modules_count=10)
+    _c = Config(depth=1, md_modules_count=10, load_best_graph=False)
 
     for _combined_tensor in tqdm(_combined_tensors):
         _graphs.append(
-            Graph.create_by_last_as_vector_and_label(
+            Graph.create_1_dim(
                 _c,
                 _combined_tensor[0],
                 _combined_tensor[1],

@@ -1,14 +1,16 @@
 from typing import Dict, List, Tuple, Union
 
 
+from models.clit_mock import Graph
+from models.factory import model_factory
 import torch
 
 
 from data.offline_data import OfflineData
 from data.lmdb_wrapper import LmdbImmutableDict
-from data.dataset import ClitRecommenderDataset, DataRow
+from data.dataset import DataRow
 from clit_recommender.models.base import ClitRecommenderModel
-from clit_recommender.models.factory import model_factory
+
 from clit_recommender.config import Config
 
 
@@ -40,5 +42,7 @@ class ClitRecommeder:
             embeddings = self._precompute_embeddings[
                 self._uri_to_idx.get(data_row.context_uri)
             ]
-            res.append(self._model(embeddings, data_row))
+            model_result = self._model(embeddings, data_row)
+
+            res.append(model_result)
         return res
