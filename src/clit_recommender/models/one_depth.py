@@ -12,32 +12,19 @@ class ClitRecommenderModelOneDepth(ClitRecommenderModel):
         self._hidden_layer = nn.Linear(
             config.lm_hidden_size, config.lm_hidden_size, device=config.device
         )
-
         self._classification_layer = nn.Linear(
             config.lm_hidden_size, 3, device=config.device
         )
-        self._softmax_layer = nn.Softmax(dim=1)
         self._multi_label_layer = nn.Linear(
             config.lm_hidden_size, config.md_modules_count, device=config.device
         )
-        self._sigmoid_layer = nn.Sigmoid()
 
     def forward(self, embeddings: Tensor, data_row: DataRow):
-        embeddings = embeddings.to(self._config.device)
+        embeddings = embeddings.to(self._config.device).view(-1)
         hidden_output = self._hidden_layer(embeddings)
-        classification_output: Tensor = self._softmax_layer(
-            self._classification_layer(hidden_output)
-        ).view(-1)
-        multi_label_output: Tensor = self._sigmoid_layer(
-            self._multi_label_layer(hidden_output)
-        ).view(-1)
+        classification_output: Tensor = self._classification_layer(hidden_output)
 
-        graph = Graph.create_1_dim(
-            self._config,
-            [],
-            multi_label_output,
-            classification_output.argmax().item(),
-        )
+        multi_label_output = self._multi_label_layer(hidden_output)
 
         if data_row is not None:
             values, g_type = Graph.create(
@@ -51,6 +38,13 @@ class ClitRecommenderModelOneDepth(ClitRecommenderModel):
             multi_label_loss = nn.BCEWithLogitsLoss()(
                 multi_label_output, Tensor(values).to(device=self._config.device)
             )
-        total_loss = classification_loss + multi_label_loss
+            total_loss = classification_loss + multi_label_loss
+
+        graph = Graph.create_1_dim(
+            self._config,
+            [],
+            multi_label_output.sigmoid(),
+            classification_output.softmax(dim=0).argmax().item(),
+        )
 
         return ModelResult(graph.to_matrix(), total_loss)

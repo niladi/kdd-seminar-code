@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 
 import pandas as pd
+import numpy as np
 
 from torch import Tensor
 
@@ -152,12 +153,14 @@ class Level:
 class Graph:
     levels: List[Level]
     intput_size: int
+    threshold: float
 
     def __init__(
         self, depth: int, threshold: float, input_node: List[InputNode]
     ) -> None:
         self.levels = []
         self.input_size = len(input_node)
+        self.threshold = threshold
         for i in range(depth):
             self.levels.append(Level("Level_" + str(i), threshold, input_node))
             input_node = self.levels[-1].OuputNodes()
@@ -191,6 +194,12 @@ class Graph:
                 )
                 matrix.append(row)
         return tuple(map(tuple, matrix))
+
+    def to_matrix_rounded(self) -> Tuple[Tuple[float]]:
+        matrix = np.matrix(self.to_matrix())
+        matrix[matrix >= self.threshold] = 1.0
+        matrix[matrix < self.threshold] = 0.0
+        return tuple(map(tuple, matrix.tolist()))
 
     def to_dataframe(self) -> pd.DataFrame:
         data = []

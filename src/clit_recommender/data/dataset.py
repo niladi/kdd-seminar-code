@@ -95,6 +95,9 @@ class ClitRecommenderDataset(IterableDataset):
                 offset += 1
 
             if self._end is not None and offset >= self._end:
+                if len(batch) > 0:
+                    yield batch
+                    batch = []
                 break
 
     def __len__(self) -> int:
@@ -121,3 +124,10 @@ class ClitRecommenderDataset(IterableDataset):
                 return x
 
         raise IndexError()
+
+
+if __name__ == "__main__":
+    l = list(
+        ClitRecommenderDataset(Config(batch_size=4, load_best_graph=False), end=10)
+    )
+    print(len(l))

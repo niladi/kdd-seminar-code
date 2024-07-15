@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from time import time
-from typing import Type
+from typing import Optional, Type
 from dataclasses_json import dataclass_json
 
 
@@ -8,17 +8,18 @@ from dataclasses_json import dataclass_json
 @dataclass
 class Config:
     epochs: int = 10
-    batch_size: int = 32
+    batch_size: int = 1
     md_modules_count: int = 10
     depth: int = 2
     cache_dir: str = "/Users/niladi/workspace/seminar-kdd/data/cache"
     lm_model_name: str = "roberta-base"
     lm_hidden_size: int = 768
-    device = "mps"
+    device = "cpu"
     experiment_name: str = None
     model: str = "ClitRecommenderModelOneDepth"
     load_best_graph: bool = True
     threshold: int = 0.5
+    seed: Optional[int] = 500
 
     def __post_init__(self):
         if self.experiment_name is None:

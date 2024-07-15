@@ -19,10 +19,12 @@ class Evaluation:
 
     def process_data_row(self, data_row: DataRow) -> Tuple[Metrics, Metrics]:
         gold = set(data_row.actual)
-        result = self.processor.process_batch([data_row])[0]
-        predicted = Graph.create(self.processor._config, result.logits).forward(
-            data_row
-        )
+        result = self.processor.process_batch(data_row)
+        g = Graph.create(self.processor._config, result.logits)
+        predicted = g.forward(data_row)
 
         pred_spans = set(predicted)
-        return Metrics.evaluate_results(gold, pred_spans, data_row.context_text[:20])
+        return (
+            Metrics.evaluate_results(gold, pred_spans, data_row.context_text[:20]),
+            Metrics.evaluate_matrices(g.to_matrix_rounded(), data_row.best_graph),
+        )

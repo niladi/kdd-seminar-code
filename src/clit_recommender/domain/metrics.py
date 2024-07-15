@@ -5,8 +5,10 @@ from typing import Any, Dict, List
 
 from dataclasses_json import dataclass_json
 from numpy import mean
+import numpy as np
 
 
+@dataclass_json
 @dataclass
 class Metrics:
 
@@ -61,9 +63,32 @@ class Metrics:
     @classmethod
     def zeros(cls):
         return Metrics(num_gold_spans=0, tp=0, fp=0, fn=0)
-    
+
     @classmethod
-    def evaluate_matrices()
+    def evaluate_matrices(cls, predicted, expected):
+
+        real = np.matrix(predicted)
+        predicted = np.matrix(expected)
+
+        diff = real - predicted
+
+        # Correct is 0
+        # FP is -1
+        # FN is 1
+
+        tp = len(np.where(diff == 0)[0])
+        fp = len(np.where(diff == -1)[0])
+        fn = len(np.where(diff == 1)[0])
+
+        metrics = Metrics(
+            num_gold_spans=len(real),
+            tp=tp,
+            fp=fp,
+            fn=fn,
+            num_docs=1,
+            example_errors=[],
+        )
+        return metrics
 
     @classmethod
     def evaluate_results(cls, gold, pred_spans, doc_title=""):
@@ -102,8 +127,8 @@ class Epoch:
         loss (List[float]): A list of loss values for each iteration in the epoch.
     """
 
-    metrics: Dict[str, Metrics] = field(default_factory=(lambda: {}))
-
+    result_metrics: Dict[str, Metrics] = field(default_factory=(lambda: {}))
+    prediction_metrics: Dict[str, Metrics] = field(default_factory=(lambda: {}))
     loss: List[float] = field(default_factory=list)
 
     def get_loss_mean(self) -> float:
@@ -131,8 +156,8 @@ class Epoch:
         Returns:
             Metrics: The el result
         """
-        if len(self.metrics) == 1:
-            return list(self.metrics.values())[0]
+        if len(self.result_metrics) == 1:
+            return list(self.result_metrics.values())[0]
         else:
             raise ValueError("There are multiple results")
 
@@ -169,7 +194,9 @@ class MetricsHolder:
         """
         self.get_last_epoch().loss.append(loss)
 
-    def set_metrics_to_last_epoch(self, metric: Metrics, key: str = "Default") -> None:
+    def set_result_metrics_to_last_epoch(
+        self, metric: Metrics, key: str = "Default"
+    ) -> None:
         """
         Sets the given entity linking metric for the specified key in the el_metrics dictionary of the last epoch.
 
@@ -180,7 +207,22 @@ class MetricsHolder:
         Returns:
             None
         """
-        self.get_last_epoch().metrics[key] = metric
+        self.get_last_epoch().result_metrics[key] = metric
+
+    def set_prediction_metrics_to_last_epoch(
+        self, metric: Metrics, key: str = "Default"
+    ) -> None:
+        """
+        Sets the given entity linking metric for the specified key in the el_metrics dictionary of the last epoch.
+
+        Args:
+            metric (Metrics): The metric to be set.
+            key (str, optional): The key to associate with the metric (the dataset name of the metric for example). Defaults to "Default".
+
+        Returns:
+            None
+        """
+        self.get_last_epoch().prediction_metrics[key] = metric
 
     def get_last_epoch(self) -> Epoch:
         """
@@ -235,5 +277,6 @@ class MetricsHolder:
             List[float]: F1 value for each epoch.
         """
         return [
-            mean([m.get_f1() for m in epoch.metrics.values()]) for epoch in self.epochs
+            mean([m.get_f1() for m in epoch.result_metrics.values()])
+            for epoch in self.epochs
         ]

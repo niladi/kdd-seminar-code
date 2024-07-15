@@ -1,15 +1,15 @@
 from typing import Dict, List, Tuple, Union
-
-
-from models.clit_mock import Graph
-from models.factory import model_factory
 import torch
 
 
-from data.offline_data import OfflineData
-from data.lmdb_wrapper import LmdbImmutableDict
-from data.dataset import DataRow
-from clit_recommender.models.base import ClitRecommenderModel
+from clit_recommender.models.clit_mock import Graph
+from clit_recommender.models.factory import model_factory
+
+
+from clit_recommender.data.offline_data import OfflineData
+from clit_recommender.data.lmdb_wrapper import LmdbImmutableDict
+from clit_recommender.data.dataset import DataRow
+from clit_recommender.models.base import ClitRecommenderModel, ModelResult
 
 from clit_recommender.config import Config
 
@@ -34,15 +34,8 @@ class ClitRecommeder:
     def get_model(self) -> ClitRecommenderModel:
         return self._model
 
-    def process_batch(self, batch: List[DataRow]):
-
-        res: List[Tuple] = []
-        data_row: DataRow
-        for data_row in batch:
-            embeddings = self._precompute_embeddings[
-                self._uri_to_idx.get(data_row.context_uri)
-            ]
-            model_result = self._model(embeddings, data_row)
-
-            res.append(model_result)
-        return res
+    def process_batch(self, data_row: DataRow) -> ModelResult:
+        embeddings = self._precompute_embeddings[
+            self._uri_to_idx.get(data_row.context_uri)
+        ]
+        return self._model(embeddings, data_row)

@@ -2,11 +2,12 @@ import itertools
 import json
 from multiprocessing import freeze_support
 from os.path import join
-from typing import List
+from typing import Iterable, List
 
 
+from clit_recommender.data.graph_db_wrapper import GraphDBWrapper
 import torch
-from domain.metrics import Metrics
+from clit_recommender.domain.metrics import Metrics
 from pqdm.processes import pqdm
 from process.evaluation import Evaluation
 from tqdm.auto import tqdm
@@ -20,8 +21,10 @@ from clit_recommender.models.clit_mock import (
     MajorityVoting,
     UnionNode,
 )
+from functools import lru_cache
 
 
+@lru_cache
 def generate_tensors(n):
     def generate_tensor(i):
         binary = bin(i)[2:].zfill(n)
@@ -39,7 +42,7 @@ def generate_tensors(n):
     return tensors
 
 
-def get_best_graph(row: DataRow, graphs: List[Graph]):
+def get_best_graph(row: DataRow, graphs: Iterable[Graph]):
     best_results = []
     current_metric: Metrics = Metrics.zeros()
     current_size = 0
@@ -49,7 +52,7 @@ def get_best_graph(row: DataRow, graphs: List[Graph]):
         if res is None or len(res) == 0:
             continue
 
-        metrics = Evaluation.evaluate(actual, set(res))
+        metrics = Metrics.evaluate_results(actual, set(res))
         s = sum(map(sum, graph.to_matrix()))
 
         if metrics.get_f1() == current_metric.get_f1():
@@ -65,7 +68,7 @@ def get_best_graph(row: DataRow, graphs: List[Graph]):
     return best_results
 
 
-def process_batch(batch: List[DataRow], graphs: List[Graph]):
+def process_batch(batch: List[DataRow], graphs: Iterable[Graph]):
     best_graph = {}
     for row in batch:
         if row.context_uri in best_graph:
@@ -80,15 +83,21 @@ if __name__ == "__main__":
 
     freeze_support()
 
+    _graph_db_wrapper = GraphDBWrapper()
+    _amount = len(_graph_db_wrapper.get_systems())
+
+    _c = Config(depth=1, md_modules_count=_amount, load_best_graph=False, batch_size=16)
+
+    _tensors = generate_tensors(_amount)
+
     # Combine tensor lists using itertools
     _combined_tensors = itertools.product(
-        [[]], generate_tensors(10), [IntersectionNode, UnionNode, MajorityVoting]
+        [[]], _tensors, [IntersectionNode, UnionNode, MajorityVoting]
     )
 
     _graphs = []
-    _c = Config(depth=1, md_modules_count=10, load_best_graph=False)
 
-    for _combined_tensor in tqdm(_combined_tensors):
+    for _combined_tensor in tqdm(_combined_tensors, total=len(_tensors) * 3):
         _graphs.append(
             Graph.create_1_dim(
                 _c,
@@ -101,6 +110,7 @@ if __name__ == "__main__":
     _best_graph = {}
     _row: DataRow
     _args = itertools.product(ClitRecommenderDataset(_c), [_graphs])
+
     _result = pqdm(
         _args,
         process_batch,
