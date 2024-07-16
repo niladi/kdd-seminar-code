@@ -6,7 +6,7 @@ from typing import Dict, Iterator, List, Tuple, Union
 from os.path import join
 import json
 
-from config import BEST_GRAPHS_JSON_FILE, BEST_GRAPHS_LMDB_FILE
+from clit_recommender.config import BEST_GRAPHS_JSON_FILE, BEST_GRAPHS_LMDB_FILE
 
 from clit_recommender.data.lmdb_wrapper import LmdbImmutableDict
 from torch import Tensor
@@ -16,6 +16,8 @@ from clit_recommender.data.graph_db_wrapper import ACTUAL_KEY, GraphDBWrapper
 from clit_recommender.config import Config
 
 from torch.utils.data import IterableDataset
+
+EVAL_SIZE = 800
 
 
 @dataclass

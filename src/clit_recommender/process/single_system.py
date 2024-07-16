@@ -5,7 +5,7 @@ from time import time
 from tqdm.auto import tqdm
 
 from clit_recommender.config import Config
-from clit_recommender.data.dataset import ClitRecommenderDataset, DataRow
+from clit_recommender.data.dataset import EVAL_SIZE, ClitRecommenderDataset, DataRow
 from clit_recommender.models.clit_mock import Graph
 from clit_recommender.domain.metrics import Metrics
 
@@ -24,7 +24,7 @@ class SingleSystem:
         random.seed(self._config.seed)
         random.shuffle(data_list)
 
-        self._data = data_list[:100]
+        self._data = data_list[:EVAL_SIZE]
 
     def run_all(self):
         for system in self._index_map.keys():
@@ -33,7 +33,8 @@ class SingleSystem:
 
     def run(self, system: str):
         config = self._config
-        config.experiment_name = f"{system}-{int(time())}"
+        config.experiment_name = f"{system.split('/')[-1]}-{int(time())}"
+
         path = os.path.join(config.cache_dir, "single_system", config.experiment_name)
 
         os.makedirs(path)
@@ -48,12 +49,15 @@ class SingleSystem:
 
         row: DataRow
         metrics = Metrics.zeros()
-        for row in tqdm(self._data):
+        for (row,) in tqdm(self._data):
             result = g.forward(row)
-            metrics += Metrics.evaluate_results(row.actual, result)
+            metrics += Metrics.evaluate_results(set(row.actual), result)
 
         print("System", system)
         print(metrics.get_summary())
+
+        with open(os.path.join(path, "summary.txt"), "w") as f:
+            f.write(metrics.get_summary())
 
         with open(os.path.join(path, "metrics.json"), "w") as f:
             f.write(metrics.to_json())
@@ -61,5 +65,5 @@ class SingleSystem:
 
 if __name__ == "__main__":
     single_system = SingleSystem()
-    first_system = next(iter(single_system._index_map))
-    single_system.run(first_system)
+    for system in single_system._index_map.keys():
+        single_system.run(system)

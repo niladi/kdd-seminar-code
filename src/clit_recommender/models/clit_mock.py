@@ -1,6 +1,6 @@
 # %%
 
-from typing import List, Tuple, Type, Union
+from typing import List, Set, Tuple, Type, Union
 from abc import ABC, abstractmethod
 from copy import deepcopy
 
@@ -165,9 +165,9 @@ class Graph:
             self.levels.append(Level("Level_" + str(i), threshold, input_node))
             input_node = self.levels[-1].OuputNodes()
 
-    def forward(self, data_row: DataRow) -> List[Mention]:
+    def forward(self, data_row: DataRow) -> Set[Mention]:
         level = self.get_last_level_node()
-        return [] if level is None else set(level.calc(data_row))
+        return set() if level is None else set(level.calc(data_row))
 
     def valid(self) -> bool:
         last_level = self.levels[-1]

@@ -9,7 +9,6 @@ from clit_recommender.data.graph_db_wrapper import GraphDBWrapper
 import torch
 from clit_recommender.domain.metrics import Metrics
 from pqdm.processes import pqdm
-from process.evaluation import Evaluation
 from tqdm.auto import tqdm
 
 from clit_recommender.config import Config, BEST_GRAPHS_JSON_FILE, BEST_GRAPHS_LMDB_FILE
@@ -22,6 +21,7 @@ from clit_recommender.models.clit_mock import (
     UnionNode,
 )
 from functools import lru_cache
+import torch.multiprocessing
 
 
 @lru_cache
@@ -109,14 +109,17 @@ if __name__ == "__main__":
 
     _best_graph = {}
     _row: DataRow
-    _args = itertools.product(ClitRecommenderDataset(_c), [_graphs])
+    _rows_list = list(ClitRecommenderDataset(_c))
+    _args = itertools.product(_rows_list, [_graphs])
 
     _result = pqdm(
         _args,
         process_batch,
-        n_jobs=8,
+        n_jobs=4,
         argument_type="args",
     )
+
+    print(_result[0])
 
     for _batch_result in _result:
         for _key, _value in _batch_result.items():

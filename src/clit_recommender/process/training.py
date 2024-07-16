@@ -15,7 +15,7 @@ from transformers import get_linear_schedule_with_warmup
 
 from clit_recommender.config import Config
 from clit_recommender.util import empty_cache
-from clit_recommender.data.dataset import ClitRecommenderDataset, DataRow
+from clit_recommender.data.dataset import EVAL_SIZE, ClitRecommenderDataset, DataRow
 from clit_recommender.domain.clit_result import Mention
 from clit_recommender.domain.metrics import Metrics, MetricsHolder
 from clit_recommender.process.evaluation import Evaluation
@@ -45,8 +45,8 @@ def train():
     random.seed(config.seed)
     random.shuffle(data_loader)
 
-    eval = data_loader[:100]
-    train = data_loader[100:]
+    eval = data_loader[:EVAL_SIZE]
+    train = data_loader[EVAL_SIZE:]
     optimizer = AdamW(model.parameters(), lr=1e-5, eps=1e-8)
     gradient_accumulation_steps: int = 2
     num_warmup_steps: int = 4
@@ -117,12 +117,26 @@ def train():
                 )
             )
         )
-        if metrics_prediction.get_f1() > f1:
+        if metrics_result.get_f1() > f1:
             print("New Model is Best")
             metrics_holder.set_last_epoch_as_best()
 
         with open(os.path.join(path, "metrics.json"), "w") as f:
             f.write(metrics_holder.to_json())
+
+        with open(os.path.join(path, "summary.txt"), "w") as f:
+            f.write("Result Metrics\n")
+            f.write(
+                next(
+                    iter(metrics_holder.get_best_epoch().result_metrics.values())
+                ).get_summary()
+            )
+            f.write("\nPrediction Metrics\n")
+            f.write(
+                next(
+                    iter(metrics_holder.get_best_epoch().prediction_metrics.values())
+                ).get_summary()
+            )
 
 
 if __name__ == "__main__":

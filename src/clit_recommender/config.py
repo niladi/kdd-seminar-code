@@ -9,7 +9,7 @@ from dataclasses_json import dataclass_json
 class Config:
     epochs: int = 10
     batch_size: int = 1
-    md_modules_count: int = 10
+    md_modules_count: int = 14
     depth: int = 2
     cache_dir: str = "/Users/niladi/workspace/seminar-kdd/data/cache"
     lm_model_name: str = "roberta-base"
