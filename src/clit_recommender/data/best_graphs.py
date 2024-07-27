@@ -12,7 +12,7 @@ from pqdm.processes import pqdm
 from tqdm.auto import tqdm
 
 from clit_recommender.config import Config, BEST_GRAPHS_JSON_FILE, BEST_GRAPHS_LMDB_FILE
-from clit_recommender.data.dataset import ClitRecommenderDataset, DataRow
+from clit_recommender.data.dataset import ClitResultDataset, DataRow
 from clit_recommender.data.lmdb_wrapper import LmdbImmutableDict
 from clit_recommender.models.clit_mock import (
     Graph,
@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
     _best_graph = {}
     _row: DataRow
-    _rows_list = list(ClitRecommenderDataset(_c))
+    _rows_list = list(ClitResultDataset(_c))
     _args = itertools.product(_rows_list, [_graphs])
 
     _result = pqdm(

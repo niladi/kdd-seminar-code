@@ -5,7 +5,7 @@ from time import time
 from tqdm.auto import tqdm
 
 from clit_recommender.config import Config
-from clit_recommender.data.dataset import EVAL_SIZE, ClitRecommenderDataset, DataRow
+from clit_recommender.data.dataset import EVAL_SIZE, ClitResultDataset, DataRow
 from clit_recommender.models.clit_mock import Graph
 from clit_recommender.domain.metrics import Metrics
 
@@ -18,7 +18,7 @@ class SingleSystem:
     def __init__(self) -> None:
         self._config = Config(depth=1)
 
-        data_loader = ClitRecommenderDataset(self._config)
+        data_loader = ClitResultDataset(self._config)
         self._index_map = data_loader._index_map
         data_list = list(data_loader)
         random.seed(self._config.seed)

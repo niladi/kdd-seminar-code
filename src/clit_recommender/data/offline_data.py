@@ -8,7 +8,7 @@ import torch
 from transformers import AutoModel, AutoTokenizer
 
 
-from data.dataset import ClitRecommenderDataset, DataRow
+from data.dataset import ClitResultDataset, DataRow
 
 from clit_recommender.config import Config
 from clit_recommender.util import flat_map
@@ -43,7 +43,7 @@ class OfflineData:
         )
 
         row: DataRow
-        for row in flat_map(lambda x: x, ClitRecommenderDataset(self._config)):
+        for row in flat_map(lambda x: x, ClitResultDataset(self._config)):
             idx = uri_to_idx.get(row.context_uri)
             inputs = tokenizer(
                 row.context_text,
@@ -67,7 +67,7 @@ class OfflineData:
         index: int
         row: DataRow
         for index, row in enumerate(
-            flat_map(lambda x: x, ClitRecommenderDataset(self._config))
+            flat_map(lambda x: x, ClitResultDataset(self._config))
         ):
             uri_to_idx[row.context_uri] = index
 

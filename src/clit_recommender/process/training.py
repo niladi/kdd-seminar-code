@@ -15,7 +15,7 @@ from transformers import get_linear_schedule_with_warmup
 
 from clit_recommender.config import Config
 from clit_recommender.util import empty_cache
-from clit_recommender.data.dataset import EVAL_SIZE, ClitRecommenderDataset, DataRow
+from clit_recommender.data.dataset import EVAL_SIZE, ClitResultDataset, DataRow
 from clit_recommender.domain.clit_result import Mention
 from clit_recommender.domain.metrics import Metrics, MetricsHolder
 from clit_recommender.process.evaluation import Evaluation
@@ -41,7 +41,7 @@ def train():
     metrics_holder = MetricsHolder()
 
     batch: List[DataRow]
-    data_loader = list(DataLoader(ClitRecommenderDataset(config), batch_size=None))
+    data_loader = list(DataLoader(ClitResultDataset(config), batch_size=None))
     random.seed(config.seed)
     random.shuffle(data_loader)
 

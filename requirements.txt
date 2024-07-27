@@ -4,6 +4,7 @@ flask
 dataclasses-json
 pynif
 rdflib
+oxrdflib
 tqdm
 pqdm
 
