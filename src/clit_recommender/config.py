@@ -11,7 +11,7 @@ class Config:
     batch_size: int = 1
     md_modules_count: int = 14
     depth: int = 2
-    cache_dir: str = "/Users/niladi/workspace/seminar-kdd/data/cache"
+    cache_dir: str = "/Users/niladi/workspace/seminar-kdd/code/data/cache"
     lm_model_name: str = "roberta-base"
     lm_hidden_size: int = 768
     device = "cpu"

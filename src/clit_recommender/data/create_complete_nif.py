@@ -1,56 +1,161 @@
+from abc import ABC, abstractmethod
 import asyncio
 from os import listdir, makedirs
 from os.path import isdir, exists
 
-from typing import List
+from typing import List, Union
 from urllib.parse import quote
 
+from domain.datasets import DatasetEnum
 from pynif import NIFCollection, NIFContext
-from rdflib import RDF, Graph, Literal, Namespace
+from rdflib import RDF, Graph, Literal, Namespace, URIRef
 from tqdm.auto import tqdm
 
-from clit_recommender import DATASETS_PATH, CLIT_RESULTS_PATH, MD_ONLY, MEDMENTION_PATH
+from clit_recommender import (
+    DATA_PATH,
+    DATASETS_PATH,
+    CLIT_RESULTS_PATH,
+    MD_ONLY,
+    MEDMENTION_PATH,
+)
 from domain.clit_result import ClitResult, Document, ExperimentTask, Mention
 from clit_recommender.util import flat_map, iterate_dirs
 
 
-def process_md(md_path: str, datasetlist: List[str], override: bool = False):
+class NifFactory(ABC):
+    _md_path: str
+    _dataset_list: List[DatasetEnum]
+    _override: bool = False
+    _pbar: tqdm
 
-    _files_len = len(
-        list(
-            flat_map(
-                lambda x: iterate_dirs(x, False),
-                flat_map(iterate_dirs, iterate_dirs(md_path)),
+    def __init__(self, dataset_list: List[str], override: bool = False) -> None:
+
+        self._dataset_list = dataset_list
+        self._override = override
+
+    @abstractmethod
+    def _run(self, dataset: DatasetEnum) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _get_progress_len(self) -> int:
+        raise NotImplementedError()
+
+    def _after_all(self) -> None:
+        self._pbar.close()  # TODO Fix Sollte sauber funktionieren
+
+    def __call__(self) -> None:
+        return self.run()
+
+    def run(self) -> None:
+        self._pbar = tqdm(total=self._get_progress_len())
+        for _dataset in self._dataset_list:
+            print("Start", _dataset)
+            self._run(_dataset)
+        self._after_all()
+
+    def get_nif_collection(self, path: str) -> NIFCollection:
+        nif_collection: NIFCollection
+        try:
+            nif_collection = NIFCollection.load(path, format="ttl")
+        except Exception:
+            print("Can't Parse dataset", path)
+            raise Exception("Invalid Dataset")
+        return nif_collection
+
+
+class NifAddCollectionUriFactory(NifFactory):
+    _graph: Graph
+    _nif_namespace: Namespace
+
+    def __init__(self, dataset_list: List[str], override: bool = False) -> None:
+        super().__init__(dataset_list, override)
+        self._graph = Graph()
+
+        self._nif_namespace = Namespace(
+            "http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#"
+        )
+        self._graph.bind("nif", self._nif_namespace)
+
+    def _get_progress_len(self) -> int:
+        return len(self._dataset_list)
+
+    def _after_all(self) -> None:
+        super()._after_all()
+        file = f"{DATA_PATH}/dataset_context_extention.nif.ttl"
+
+        if exists(file):
+            print(file, "already exists")
+            if not self._override:
+                print("Skipping")
+                return
+        print("Start Saving ", file)
+        self._graph.serialize(file, format="ttl")
+        print("Done Saving")
+
+    def _run(self, dataset: DatasetEnum) -> None:
+        dataset_path = f"{DATASETS_PATH}/{dataset.filename}"
+        collection = self.get_nif_collection(dataset_path)
+        collection_uri = URIRef(dataset.context_uri_prefix)
+
+        self._graph.add(
+            (
+                collection_uri,
+                RDF.type,
+                self._nif_namespace["ContextCollection"],
             )
         )
-    )
 
-    _pbar = tqdm(total=_files_len)
+        for context in collection.contexts:
+            self._graph.add(
+                (
+                    collection_uri,
+                    self._nif_namespace["hasContext"],
+                    context.uri,
+                )
+            )
 
-    def dataset_process(dataset: str):
+        self._pbar.update(1)
+
+
+class NifClitResultFactory(NifFactory):
+    def __init__(
+        self, dataset_list: List[str], override: bool = False, md_path: str = MD_ONLY
+    ) -> None:
+        super().__init__(dataset_list, override)
+        self._md_path = md_path
+
+    def _get_progress_len(self) -> int:
+        return len(
+            list(
+                flat_map(
+                    lambda x: iterate_dirs(x, False),
+                    flat_map(iterate_dirs, iterate_dirs(self._md_path)),
+                )
+            )
+        )
+
+    def _run(self, dataset: DatasetEnum) -> None:
+        dataset = dataset.filename
         aifb_namespace = Namespace("http://aifb.kit.edu/clit/recommender/")
         nif_namespace = Namespace(
             "http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#"
         )
         dataset_path = f"{DATASETS_PATH}/{dataset}"
-        nif_collection: NIFCollection
-        try:
-            nif_collection = NIFCollection.load(dataset_path, format="ttl")
-        except Exception:
-            print("Can't Parse dataset", dataset)
-            return
-        for system in listdir(f"{md_path}/{dataset}"):
-            if not isdir(f"{md_path}/{dataset}/{system}"):
+        nif_collection = self.get_nif_collection(dataset_path)
+
+        for system in listdir(f"{self._md_path}/{dataset}"):
+            if not isdir(f"{self._md_path}/{dataset}/{system}"):
                 continue
 
-            if (not override) and exists(
+            if (not self._override) and exists(
                 f"{CLIT_RESULTS_PATH}/{dataset}/{system}.nif.ttl"
             ):
                 print(
                     f"{CLIT_RESULTS_PATH}/{dataset}/{system}.nif.ttl already exists",
                     "Skipping",
                 )
-                _pbar.update(len(listdir(f"{md_path}/{dataset}/{system}")))
+                self.__pbar.update(len(listdir(f"{self._md_path}/{dataset}/{system}")))
                 continue
 
             system_uri = aifb_namespace[quote(system)]
@@ -58,10 +163,12 @@ def process_md(md_path: str, datasetlist: List[str], override: bool = False):
             g_system.bind("aifb", aifb_namespace)
             g_system.bind("nif", nif_namespace)
             g_system.add((system_uri, RDF.type, aifb_namespace["ClitMdSystem"]))
-            for experiment in listdir(f"{md_path}/{dataset}/{system}"):
+            for experiment in listdir(f"{self._md_path}/{dataset}/{system}"):
                 clit_result: ClitResult
                 try:
-                    with open(f"{md_path}/{dataset}/{system}/{experiment}", "r") as f:
+                    with open(
+                        f"{self._md_path}/{dataset}/{system}/{experiment}", "r"
+                    ) as f:
                         j = f.read()
                         clit_result = ClitResult.from_json(j)
                 except Exception:
@@ -172,7 +279,7 @@ def process_md(md_path: str, datasetlist: List[str], override: bool = False):
                             # ):
                             # found_mention = mention
                             # break
-                _pbar.update(1)
+                self._pbar.update(1)
             if not exists(f"{CLIT_RESULTS_PATH}/{dataset}"):
                 makedirs(f"{CLIT_RESULTS_PATH}/{dataset}")
             file = f"{CLIT_RESULTS_PATH}/{dataset}/{system}.nif.ttl"
@@ -180,12 +287,6 @@ def process_md(md_path: str, datasetlist: List[str], override: bool = False):
             g_system.serialize(file, format="ttl")
             print("Done Saving")
         print("Finished", dataset)
-
-    for _dataset in datasetlist:
-        print("Start", _dataset)
-        dataset_process(_dataset)
-
-    _pbar.close()  # TODO Fix Sollte sauber funktionieren
 
 
 #
@@ -202,6 +303,21 @@ def process_md(md_path: str, datasetlist: List[str], override: bool = False):
 # asyncio.run(create_complete_nif())
 
 if __name__ == "__main__":
-    # process_md(MD_ONLY, listdir(DATASETS_PATH))
 
-    process_md(MEDMENTION_PATH, ["medmention.ttl"], False)
+    # Clit Results All Casual Domain
+    # NifClitResultFactory([DatasetEnum.AIDA_YAGO2, DatasetEnum.KORE_50, DatasetEnum.NEWS_100, DatasetEnum.REUTERS_128, DatasetEnum.RSS_500], False, MD_ONLY)()
+
+    # Clit Results Med Mentions Domain
+    # NifClitResultFactory([DatasetEnum.MED_MENTIONS], False, MEDMENTION_PATH)()
+
+    # Collection URL Casual Domain
+    NifAddCollectionUriFactory(
+        [
+            DatasetEnum.AIDA_YAGO2,
+            DatasetEnum.KORE_50,
+            DatasetEnum.NEWS_100,
+            DatasetEnum.REUTERS_128,
+            DatasetEnum.RSS_500,
+        ],
+        True,
+    )()
