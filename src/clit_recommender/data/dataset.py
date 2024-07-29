@@ -55,9 +55,9 @@ class ClitResultDataset(IterableDataset):
     def __init__(self, config: Config) -> None:
         super().__init__()
 
-        self._graph_db_wrapper = GraphDBWrapper()
+        self._graph_db_wrapper = GraphDBWrapper(config.datasets)
         self._index_map = {
-            s: i for i, s in enumerate(sorted(self._graph_db_wrapper.get_systems()))
+            s: i for i, s in enumerate(sorted(self._graph_db_wrapper.get_all_systems()))
         }
         self._config = config
 

@@ -96,7 +96,7 @@ class NifAddCollectionUriFactory(NifFactory):
     def _run(self, dataset: DatasetEnum) -> None:
         dataset_path = f"{DATASETS_PATH}/{dataset.filename}"
         collection = self.get_nif_collection(dataset_path)
-        collection_uri = URIRef(dataset.context_uri_prefix)
+        collection_uri = URIRef(dataset.uri)
 
         self._graph.add(
             (
@@ -312,12 +312,6 @@ if __name__ == "__main__":
 
     # Collection URL Casual Domain
     NifAddCollectionUriFactory(
-        [
-            DatasetEnum.AIDA_YAGO2,
-            DatasetEnum.KORE_50,
-            DatasetEnum.NEWS_100,
-            DatasetEnum.REUTERS_128,
-            DatasetEnum.RSS_500,
-        ],
+        [DatasetEnum.AIDA_YAGO2, DatasetEnum.KORE_50],
         True,
     )()

@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from time import time
-from typing import Optional, Type
+from typing import List, Optional, Type
 from dataclasses_json import dataclass_json
+from clit_recommender.domain.datasets import DatasetEnum
 
 
 @dataclass_json
@@ -20,6 +21,7 @@ class Config:
     load_best_graph: bool = True
     threshold: int = 0.5
     seed: Optional[int] = 500
+    datasets: List[DatasetEnum] = list(DatasetEnum)
 
     def __post_init__(self):
         if self.experiment_name is None:

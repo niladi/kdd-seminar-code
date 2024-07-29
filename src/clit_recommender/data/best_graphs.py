@@ -11,6 +11,7 @@ from clit_recommender.domain.metrics import Metrics
 from pqdm.processes import pqdm
 from tqdm.auto import tqdm
 
+from clit_recommender.domain.datasets import DatasetEnum
 from clit_recommender.config import Config, BEST_GRAPHS_JSON_FILE, BEST_GRAPHS_LMDB_FILE
 from clit_recommender.data.dataset import ClitResultDataset, DataRow
 from clit_recommender.data.lmdb_wrapper import LmdbImmutableDict
@@ -83,10 +84,18 @@ if __name__ == "__main__":
 
     freeze_support()
 
-    _graph_db_wrapper = GraphDBWrapper()
-    _amount = len(_graph_db_wrapper.get_systems())
+    _datasets = list(DatasetEnum)
 
-    _c = Config(depth=1, md_modules_count=_amount, load_best_graph=False, batch_size=16)
+    _graph_db_wrapper = GraphDBWrapper(_datasets)
+    _amount = len(_graph_db_wrapper.get_all_systems())
+
+    _c = Config(
+        depth=1,
+        md_modules_count=_amount,
+        load_best_graph=False,
+        batch_size=16,
+        datasets=_datasets,
+    )
 
     _tensors = generate_tensors(_amount)
 

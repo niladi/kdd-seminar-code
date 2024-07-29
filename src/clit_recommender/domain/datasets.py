@@ -5,7 +5,7 @@ from enum import Enum
 @dataclass
 class Dataset:
     label: str
-    context_uri_prefix: str
+    uri: str
     filename: str
 
 
@@ -35,6 +35,6 @@ if __name__ == "__main__":
 
     for dataset in DatasetEnum:
         print(dataset.label)
-        print(dataset.context_uri_prefix)
+        print(dataset.uri)
         print(dataset.filename)
         print()

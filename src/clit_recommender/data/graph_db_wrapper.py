@@ -3,6 +3,7 @@
 from collections import defaultdict
 from typing import Dict, List, Tuple
 from SPARQLWrapper import JSON, SPARQLWrapper
+from domain.datasets import DatasetEnum
 
 ACTUAL_KEY = "ACTUAL"
 
@@ -10,11 +11,14 @@ ACTUAL_KEY = "ACTUAL"
 class GraphDBWrapper:
 
     _client: SPARQLWrapper
+    _datasets: List[str]
 
-    def __init__(self) -> None:
+    def __init__(self, datasets: List[DatasetEnum] = list(DatasetEnum)) -> None:
         self._client = SPARQLWrapper(
             "http://localhost:7200/repositories/KDD", returnFormat=JSON
         )
+
+        self._datasets = list(map(lambda s: f"<{s.uri}>", datasets))
 
     def _query(self, query: str):
         query = f"""
@@ -29,7 +33,7 @@ class GraphDBWrapper:
             self._client.queryAndConvert()["results"]["bindings"],
         )
 
-    def get_systems(self) -> List[str]:
+    def get_all_systems(self) -> List[str]:
         query = """
             select * 
             where { 
@@ -38,12 +42,28 @@ class GraphDBWrapper:
         """
         return [i["s"] for i in self._query(query)]
 
-    def get_contexts(self, limit=99999, offset=0) -> List[Tuple[str, str]]:
+    def get_systems_on_datasets(self) -> List[str]:
+        query = f"""
+            select distinct ?s
+            where {{ 
+	            ?s a aifb:ClitMdSystem .
+                ?r aifb:ofSystem ?s .
+                ?r nif:referenceContext ?c .
+                ?collection nif:hasContext ?c .
+                values ?collection {{ {" ".join(self._datasets)} }} .
+                
+            }}
+        """
+        return [i["s"] for i in self._query(query)]
+
+    def get_contexts(self, limit=999999, offset=0) -> List[Tuple[str, str]]:
         query = f"""
             select * 
             where {{
                 ?c a nif:Context .
                 ?c nif:isString ?t .
+                ?collection nif:hasContext ?c .
+                values ?collection {{ {" ".join(self._datasets)} }} .
             }}
             limit {limit}
             offset {offset}
@@ -51,12 +71,14 @@ class GraphDBWrapper:
         return [(i["c"], i["t"]) for i in self._query(query)]
 
     def get_count(self) -> int:
-        query = """
+        query = f"""
             select (count(*) as ?count)
-            where {
+            where {{
                 ?c a nif:Context .
                 ?c nif:isString ?t .
-            }"""
+                ?collection nif:hasContext ?c .
+                values ?collection {{ {" ".join(self._datasets)} }} .
+            }}"""
         return int(next(self._query(query), None)["count"])
 
     def get_mentions_of_context(
@@ -82,3 +104,14 @@ class GraphDBWrapper:
             s = i["s"] if "s" in i else ACTUAL_KEY
             d[s].append(m)
         return d
+
+
+if __name__ == "__main__":
+    g = GraphDBWrapper([DatasetEnum.MED_MENTIONS])
+    print(len(g.get_all_systems()))
+    print(len(g.get_systems_on_datasets()))
+    # print(g.get_count())
+    # print(g.get_contexts())
+    # print(g.get_mentions_of_context("http://med-mentions.niladi.de/all#char=0,100"))
+
+# %%
