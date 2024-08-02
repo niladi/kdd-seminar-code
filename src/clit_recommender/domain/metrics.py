@@ -91,20 +91,38 @@ class Metrics:
         return metrics
 
     @classmethod
-    def evaluate_results(cls, gold, pred_spans, doc_title=""):
+    def evaluate_results(cls, gold, pred_spans, doc_title="", soft=True):
         num_gold_spans = len(gold)
-        tp = len(pred_spans & gold)
-        fp = len(pred_spans - gold)
-        fn = len(gold - pred_spans)
+        if not soft:
+            tp = pred_spans & gold
+            fp = pred_spans - gold
+            fn = gold - pred_spans
+        else:
+            tp, fp = set(), set()
+            for pred_span in pred_spans:
+                in_gold = False
+                for gold_span in gold:
+                    if pred_span[0] == gold_span[0]:
+                        if (
+                            pred_span[1] == gold_span[1]
+                            or pred_span[1] - 1 == gold_span[1]
+                            or pred_span[1] + 1 == gold_span[1]
+                        ):
+                            tp.add(gold_span)
+                            in_gold = True
+                            break
+                if not in_gold:
+                    fp.add(pred_span)
+            fn = gold - tp
 
-        fp_errors = sorted(list(pred_spans - gold), key=lambda x: x[1])[:5]
-        fn_errors = sorted(list(gold - pred_spans), key=lambda x: x[1])[:5]
+        fp_errors = sorted(fp, key=lambda x: x[1])[:5]
+        fn_errors = sorted(fn, key=lambda x: x[1])[:5]
 
         metrics = Metrics(
             num_gold_spans=num_gold_spans,
-            tp=tp,
-            fp=fp,
-            fn=fn,
+            tp=len(tp),
+            fp=len(fp),
+            fn=len(fn),
             num_docs=1,
             example_errors=[
                 {

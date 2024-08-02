@@ -16,7 +16,7 @@ from clit_recommender import (
     DATASETS_PATH,
     CLIT_RESULTS_PATH,
     MD_ONLY,
-    MEDMENTION_PATH,
+    MD_ONLY_MEDMENTION_PATH,
 )
 from domain.clit_result import ClitResult, Document, ExperimentTask, Mention
 from clit_recommender.util import flat_map, iterate_dirs

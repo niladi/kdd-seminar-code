@@ -130,5 +130,5 @@ class ClitRecommenderDataSet(ClitResultDataset):
 
 
 if __name__ == "__main__":
-    l = list(ClitResultDataset(Config(batch_size=4, load_best_graph=False))
+    l = list(ClitResultDataset(Config(batch_size=4, load_best_graph=False)))
     print(len(l))

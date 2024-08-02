@@ -1,10 +1,12 @@
 # %%
 
 from typing import Dict, List
-from os.path import join
+from os.path import join, exists
+from os import remove
 import json
 
 import torch
+from tqdm.auto import tqdm
 from transformers import AutoModel, AutoTokenizer
 
 
@@ -43,7 +45,7 @@ class OfflineData:
         )
 
         row: DataRow
-        for row in flat_map(lambda x: x, ClitResultDataset(self._config)):
+        for row in tqdm(flat_map(lambda x: x, ClitResultDataset(self._config))):
             idx = uri_to_idx.get(row.context_uri)
             inputs = tokenizer(
                 row.context_text,
@@ -71,9 +73,12 @@ class OfflineData:
         ):
             uri_to_idx[row.context_uri] = index
 
-        LmdbImmutableDict.from_dict(
-            uri_to_idx, join(self._config.cache_dir, self.uri_to_idx_filename_lmdb)
-        )
+        p = join(self._config.cache_dir, self.uri_to_idx_filename_lmdb)
+
+        if exists(p):
+            remove(p)
+
+        LmdbImmutableDict.from_dict(uri_to_idx, p)
 
         with open(
             join(self._config.cache_dir, self.uri_to_idx_filename_json), "w"
@@ -87,3 +92,11 @@ class OfflineData:
 
     def load_embeddings(self) -> torch.tensor:
         return torch.load(join(self._config.cache_dir, self.embeddings_filname))
+
+
+if __name__ == "__main__":
+    config = Config()
+    offline_data = OfflineData(config)
+    offline_data.generate_uri_to_idx()
+    offline_data.generate_text_embeddings()
+    print("Done")

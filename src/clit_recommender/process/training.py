@@ -15,7 +15,7 @@ from transformers import get_linear_schedule_with_warmup
 
 from clit_recommender.config import Config
 from clit_recommender.util import empty_cache
-from clit_recommender.data.dataset import EVAL_SIZE, ClitResultDataset, DataRow
+from clit_recommender.data.dataset import EVAL_SIZE, ClitRecommenderDataSet, DataRow
 from clit_recommender.domain.clit_result import Mention
 from clit_recommender.domain.metrics import Metrics, MetricsHolder
 from clit_recommender.process.evaluation import Evaluation
@@ -41,12 +41,13 @@ def train():
     metrics_holder = MetricsHolder()
 
     batch: List[DataRow]
-    data_loader = list(DataLoader(ClitResultDataset(config), batch_size=None))
+    data_loader = list(DataLoader(ClitRecommenderDataSet(config), batch_size=None))
     random.seed(config.seed)
     random.shuffle(data_loader)
+    eval_size = int(len(data_loader) * config.eval_factor)
 
-    eval = data_loader[:EVAL_SIZE]
-    train = data_loader[EVAL_SIZE:]
+    eval = data_loader[:eval_size]
+    train = data_loader[eval_size:]
     optimizer = AdamW(model.parameters(), lr=1e-5, eps=1e-8)
     gradient_accumulation_steps: int = 2
     num_warmup_steps: int = 4

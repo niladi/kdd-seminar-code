@@ -1,7 +1,7 @@
 from torch import Tensor, nn
 
 from clit_recommender.config import Config
-from clit_recommender.data.dataset import DataRow
+from clit_recommender.data.dataset import DataRowWithBestGraph
 from clit_recommender.models.base import ClitRecommenderModel, ModelResult
 from clit_recommender.models.clit_mock import Graph
 
@@ -19,7 +19,7 @@ class ClitRecommenderModelOneDepth(ClitRecommenderModel):
             config.lm_hidden_size, config.md_modules_count, device=config.device
         )
 
-    def forward(self, embeddings: Tensor, data_row: DataRow):
+    def forward(self, embeddings: Tensor, data_row: DataRowWithBestGraph):
         embeddings = embeddings.to(self._config.device).view(-1)
         hidden_output = self._hidden_layer(embeddings)
         classification_output: Tensor = self._classification_layer(hidden_output)

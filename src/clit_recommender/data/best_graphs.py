@@ -1,8 +1,11 @@
 import itertools
 import json
 from multiprocessing import freeze_support
-from os.path import join
-from typing import Iterable, List
+from os.path import join, exists
+from os import remove
+from typing import Dict, Iterable, List
+
+from clit_recommender.data.dataset import ClitResultDataset, DataRow
 
 
 from clit_recommender.data.graph_db_wrapper import GraphDBWrapper
@@ -13,7 +16,7 @@ from tqdm.auto import tqdm
 
 from clit_recommender.domain.datasets import DatasetEnum
 from clit_recommender.config import Config, BEST_GRAPHS_JSON_FILE, BEST_GRAPHS_LMDB_FILE
-from clit_recommender.data.dataset import ClitResultDataset, DataRow
+
 from clit_recommender.data.lmdb_wrapper import LmdbImmutableDict
 from clit_recommender.models.clit_mock import (
     Graph,
@@ -80,13 +83,11 @@ def process_batch(batch: List[DataRow], graphs: Iterable[Graph]):
     return best_graph
 
 
-if __name__ == "__main__":
-
-    freeze_support()
-
-    _datasets = list(DatasetEnum)
-
+def create_best_graphs(
+    _datasets: List[DatasetEnum], _best_graph: Dict, override_existing=False
+):
     _graph_db_wrapper = GraphDBWrapper(_datasets)
+    used = _graph_db_wrapper.get_systems_on_datasets()
     _amount = len(_graph_db_wrapper.get_all_systems())
 
     _c = Config(
@@ -97,7 +98,16 @@ if __name__ == "__main__":
         datasets=_datasets,
     )
 
+    d = ClitResultDataset(_c)
+    index = list(map(d._index_map.get, used))
+    _t = torch.zeros(_amount)
+    _t[index] = 1
+
     _tensors = generate_tensors(_amount)
+
+    print(len(_tensors))
+    _tensors = list(filter(lambda x: x.sum() == (x * _t).sum(), _tensors))
+    print(len(_tensors))
 
     # Combine tensor lists using itertools
     _combined_tensors = itertools.product(
@@ -116,9 +126,8 @@ if __name__ == "__main__":
             )
         )
 
-    _best_graph = {}
     _row: DataRow
-    _rows_list = list(ClitResultDataset(_c))
+    _rows_list = list(d)
     _args = itertools.product(_rows_list, [_graphs])
 
     _result = pqdm(
@@ -132,7 +141,7 @@ if __name__ == "__main__":
 
     for _batch_result in _result:
         for _key, _value in _batch_result.items():
-            if _key in _best_graph:
+            if not override_existing and _key in _best_graph:
                 raise ValueError("Duplicate context_uri")
             _best_graph[_key] = _value
 
@@ -140,4 +149,23 @@ if __name__ == "__main__":
     with open(join(_c.cache_dir, BEST_GRAPHS_JSON_FILE), "w") as f:
         json.dump(_best_graph, f)
 
-    LmdbImmutableDict.from_dict(_best_graph, join(_c.cache_dir, BEST_GRAPHS_LMDB_FILE))
+    lmdb_path = join(_c.cache_dir, BEST_GRAPHS_LMDB_FILE)
+
+    if exists(lmdb_path):
+        remove(lmdb_path)
+
+    LmdbImmutableDict.from_dict(_best_graph, lmdb_path)
+
+
+if __name__ == "__main__":
+
+    # Because of extention of MedMentions
+    with open(join(Config().cache_dir, BEST_GRAPHS_JSON_FILE), "r") as f:
+        _best_graph = json.load(f)
+
+    freeze_support()
+
+    # _datasets = list(DatasetEnum)
+    _datasets = [DatasetEnum.MED_MENTIONS]
+
+    create_best_graphs(_datasets, _best_graph, True)
