@@ -10,13 +10,13 @@ class ClitRecommenderModelOneDepth(ClitRecommenderModel):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self._hidden_layer = nn.Linear(
-            config.lm_hidden_size, config.lm_hidden_size, device=config.device
+            self._embedding_size, self._embedding_size, device=config.device
         )
         self._classification_layer = nn.Linear(
-            config.lm_hidden_size, 3, device=config.device
+            self._embedding_size, 3, device=config.device
         )
         self._multi_label_layer = nn.Linear(
-            config.lm_hidden_size, config.md_modules_count, device=config.device
+            self._embedding_size, config.md_modules_count, device=config.device
         )
 
     def forward(self, embeddings: Tensor, data_row: DataRowWithBestGraph):

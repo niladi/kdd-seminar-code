@@ -1,7 +1,6 @@
-# %%
-import operator
 import os
 from typing import List
+
 
 from numpy import mean
 import torch
@@ -13,18 +12,18 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm, trange
 from transformers import get_linear_schedule_with_warmup
 
+from clit_recommender.domain.datasets import DatasetEnum
 from clit_recommender.config import Config
 from clit_recommender.util import empty_cache
-from clit_recommender.data.dataset import EVAL_SIZE, ClitRecommenderDataSet, DataRow
-from clit_recommender.domain.clit_result import Mention
+from clit_recommender.data.dataset import ClitRecommenderDataSet, DataRow
 from clit_recommender.domain.metrics import Metrics, MetricsHolder
 from clit_recommender.process.evaluation import Evaluation
 from clit_recommender.process.inference import ClitRecommeder
 
 
-def train():
-    config = Config(depth=1)
-    path = os.path.join(config.cache_dir, "results", config.experiment_name)
+def train(config: Config):
+
+    path = os.path.join(config.results_dir, "experiments", config.experiment_name)
 
     os.makedirs(path)
 
@@ -141,4 +140,4 @@ def train():
 
 
 if __name__ == "__main__":
-    train()
+    train(Config(depth=1, datasets=list(DatasetEnum)))

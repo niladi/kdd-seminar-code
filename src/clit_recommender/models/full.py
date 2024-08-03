@@ -28,13 +28,13 @@ class ClitRecommenderModelFull(ClitRecommenderModel):
 
         # Linear function
         self._fc1 = nn.Linear(
-            config.lm_hidden_size, config.lm_hidden_size, device=config.device
+            self._embedding_size, self._embedding_size, device=config.device
         )
         # Non-linearity
         self._sigmoid = nn.Sigmoid()
         # Linear function (readout)
         self._fc2 = nn.Linear(
-            config.lm_hidden_size, config.calculate_output_size(), device=config.device
+            self._embedding_size, config.calculate_output_size(), device=config.device
         )
 
         self._loss = ClitRecommenderLoss()

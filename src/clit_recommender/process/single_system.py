@@ -32,7 +32,7 @@ class SingleSystem:
         self._data = data_list[:eval_size]
 
     def run_all(self):
-        path = os.path.join(self._config.cache_dir, "single_system", str(int(time())))
+        path = os.path.join(self._config.results_dir, "single_system", str(int(time())))
         for system in self._index_map.keys():
             print("Starting System", system)
             self.run(path, system)
@@ -72,5 +72,5 @@ class SingleSystem:
 
 
 if __name__ == "__main__":
-    single_system = SingleSystem([DatasetEnum.MED_MENTIONS], save=False)
+    single_system = SingleSystem(list(DatasetEnum), save=False)
     single_system.run_all()

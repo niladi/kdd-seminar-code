@@ -1,5 +1,3 @@
-# %%
-
 from typing import List, Set, Tuple, Type, Union
 from abc import ABC, abstractmethod
 from copy import deepcopy
@@ -9,6 +7,7 @@ import numpy as np
 
 from torch import Tensor
 
+from clit_recommender import GraphPresentation
 from clit_recommender.data.dataset import DataRow
 from clit_recommender.util import flat_map
 from clit_recommender.config import Config
@@ -92,7 +91,7 @@ class UnionNode(CombinedNode):
         return 0
 
     def operation(self, data: float):
-        return flat_map(lambda x: x, self.calc_on_input(data))
+        return set(flat_map(lambda x: x, self.calc_on_input(data)))
 
 
 class IntersectionNode(CombinedNode):
@@ -123,7 +122,7 @@ class MajorityVoting(CombinedNode):
         majority_voted = [
             item for item, count in majority_votes.items() if count >= min_size
         ]
-        return majority_voted
+        return set(majority_voted)
 
 
 class Level:
@@ -180,7 +179,7 @@ class Graph:
                     one_is_active = True
         return one_is_active
 
-    def to_matrix(self) -> Tuple[Tuple[float]]:
+    def to_matrix(self) -> GraphPresentation:
         matrix = []
         for i_l, l in enumerate(self.levels):
             for i_n, n in enumerate(l.input):
@@ -195,7 +194,7 @@ class Graph:
                 matrix.append(row)
         return tuple(map(tuple, matrix))
 
-    def to_matrix_rounded(self) -> Tuple[Tuple[float]]:
+    def to_matrix_rounded(self) -> GraphPresentation:
         matrix = np.matrix(self.to_matrix())
         matrix[matrix >= self.threshold] = 1.0
         matrix[matrix < self.threshold] = 0.0
@@ -221,7 +220,7 @@ class Graph:
     @staticmethod
     def create(
         config: Config,
-        value_matrix: Union[List[List[float]], Tensor, Tuple[Tuple[float]]] = None,
+        value_matrix: GraphPresentation = None,
     ):
         depth = config.depth
         input_size = config.md_modules_count
@@ -252,15 +251,15 @@ class Graph:
             if i.is_active():
                 return i
 
-    def get_last_level_tuple(self) -> Tuple[Tuple[float], Type[CombinedNode]]:
+    def get_last_level_tuple(self) -> Tuple[Tuple[float, ...], Type[CombinedNode]]:
         node = self.get_last_level_node()
         return tuple(map(lambda x: x.value, node.input)), type(node)
 
     @staticmethod
     def create_1_dim(
         config: Config,
-        value_matrix: Union[List[List[float]], Tensor, Tuple[Tuple[float]]],
-        last_level_values: Union[List[float], Tensor, Tuple[float]],
+        value_matrix: GraphPresentation,
+        last_level_values: Union[List[float], Tensor, Tuple[float, ...]],
         last_level_type: Union[Type[CombinedNode], int],
     ):
         assert int(config.calculate_output_size() / 3 - len(value_matrix)) == len(

@@ -8,13 +8,12 @@ from clit_recommender.domain.datasets import DatasetEnum
 @dataclass_json
 @dataclass
 class Config:
-    epochs: int = 10
+    epochs: int = 2
     batch_size: int = 1
     md_modules_count: int = 14
     depth: int = 2
-    cache_dir: str = "/Users/niladi/workspace/seminar-kdd/code/data/cache"
+    results_dir: str = "/Users/niladi/workspace/seminar-kdd/code/data/results"
     lm_model_name: str = "roberta-large"
-    lm_hidden_size: int = 512
     device = "cpu"
     experiment_name: str = None
     model: str = "ClitRecommenderModelOneDepth"
