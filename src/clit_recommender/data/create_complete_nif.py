@@ -1,24 +1,21 @@
 from abc import ABC, abstractmethod
-import asyncio
 from os import listdir, makedirs
-from os.path import isdir, exists
-
-from typing import List, Union
+from os.path import exists, isdir
+from typing import List
 from urllib.parse import quote
 
-from domain.datasets import Dataset
 from pynif import NIFCollection, NIFContext
 from rdflib import RDF, Graph, Literal, Namespace, URIRef
 from tqdm.auto import tqdm
 
-from clit_recommender import (
-    DATA_PATH,
-    DATASETS_PATH,
-    CLIT_RESULTS_PATH,
-    MD_ONLY,
-    MD_ONLY_MEDMENTION_PATH,
+from clit_recommender import CLIT_RESULTS_PATH, DATA_PATH, DATASETS_PATH, MD_ONLY
+from clit_recommender.domain.clit_result import (
+    ClitResult,
+    Document,
+    ExperimentTask,
+    Mention,
 )
-from domain.clit_result import ClitResult, Document, ExperimentTask, Mention
+from clit_recommender.domain.datasets import Dataset
 from clit_recommender.util import flat_map, iterate_dirs
 
 

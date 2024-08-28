@@ -3,7 +3,7 @@ from typing import Union
 import torch
 
 from clit_recommender.config import Config
-from clit_recommender.data.dataset import DataRowWithBestGraph
+from clit_recommender.data.dataset.DataRowWithBestGraph import DataRowWithBestGraph
 from clit_recommender.data.embeddings_precompute import EmbeddingsPrecompute
 from clit_recommender.data.lmdb_wrapper import LmdbImmutableDict
 from clit_recommender.models.base import ClitRecommenderModel, ModelResult

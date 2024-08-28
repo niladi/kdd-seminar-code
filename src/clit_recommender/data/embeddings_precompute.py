@@ -10,7 +10,8 @@ from tqdm.auto import tqdm
 from transformers import AutoModel, AutoTokenizer
 
 
-from clit_recommender.data.dataset import ClitResultDataset, DataRow
+from clit_recommender.data.dataset.clit_result_dataset import ClitResultDataset
+from clit_recommender.data.dataset.clit_result_dataset import DataRow
 
 from clit_recommender import EMBEDDINGS_PATH
 from clit_recommender.config import Config

@@ -6,7 +6,7 @@ from transformers import AutoConfig
 
 from clit_recommender.models.clit_mock import Graph
 from clit_recommender.config import Config
-from clit_recommender.data.dataset import DataRow
+from clit_recommender.data.dataset.clit_result_dataset import DataRow
 
 
 @dataclass

@@ -8,7 +8,7 @@ import numpy as np
 from torch import Tensor
 
 from clit_recommender import GraphPresentation
-from clit_recommender.data.dataset import DataRow
+from clit_recommender.data.dataset.clit_result_dataset import DataRow
 from clit_recommender.util import flat_map
 from clit_recommender.config import Config
 from clit_recommender.domain.clit_result import Mention

@@ -13,11 +13,15 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm, trange
 from transformers import get_linear_schedule_with_warmup
 
+from clit_recommender.data.best_graphs.factory import BestGraphFactory
+from clit_recommender.data.dataset.clit_recommender_data_set import (
+    ClitRecommenderDataSet,
+)
 from clit_recommender.domain.datasets import Dataset
 from clit_recommender.domain.systems import System
 from clit_recommender.config import Config
 from clit_recommender.util import empty_cache
-from clit_recommender.data.dataset import ClitRecommenderDataSet, DataRow
+from clit_recommender.data.dataset.clit_result_dataset import DataRow
 from clit_recommender.domain.metrics import Metrics, MetricsHolder
 from clit_recommender.process.evaluation import Evaluation
 from clit_recommender.process.inference import ClitRecommeder
@@ -43,6 +47,13 @@ def train(config: Config, save: bool = True):
     metrics_holder = MetricsHolder()
 
     batch: List[DataRow]
+
+    best_graph_factory = BestGraphFactory.from_config(config)
+
+    if not best_graph_factory.exists():
+        print("Best Graphs not exists. Creating ...")
+        best_graph_factory.create()
+
     data_loader = list(DataLoader(ClitRecommenderDataSet(config), batch_size=None))
     random.seed(config.seed)
     random.shuffle(data_loader)
