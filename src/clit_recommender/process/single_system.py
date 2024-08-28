@@ -2,11 +2,12 @@ import random
 import os
 from typing import Dict, List
 from time import time
-from domain.datasets import DatasetEnum
+
 from tqdm.auto import tqdm
 
+from clit_recommender.domain.datasets import Dataset
 from clit_recommender.config import Config
-from clit_recommender.data.dataset import EVAL_SIZE, ClitResultDataset, DataRow
+from clit_recommender.data.dataset import ClitResultDataset, DataRow
 from clit_recommender.models.clit_mock import Graph
 from clit_recommender.domain.metrics import Metrics
 
@@ -17,11 +18,11 @@ class SingleSystem:
     _index_map: Dict[str, int]
     _save: bool
 
-    def __init__(self, datasets: List[DatasetEnum], save: bool = True) -> None:
+    def __init__(self, datasets: List[Dataset], save: bool = True) -> None:
         self._config = Config(depth=1, datasets=datasets)
 
         data_loader = ClitResultDataset(self._config)
-        self._index_map = data_loader._index_map
+        self._index_map = self._config.get_index_map()
         data_list = list(data_loader)
         random.seed(self._config.seed)
         random.shuffle(data_list)
@@ -35,9 +36,9 @@ class SingleSystem:
         path = os.path.join(self._config.results_dir, "single_system", str(int(time())))
         for system in self._index_map.keys():
             print("Starting System", system)
-            self.run(path, system)
+            self.run(system, path)
 
-    def run(self, path: str, system: str):
+    def run(self, system: str, path: str = ""):
         config = self._config
         config.experiment_name = f"{system.split('/')[-1]}-{int(time())}"
 
@@ -70,7 +71,9 @@ class SingleSystem:
             with open(os.path.join(path, "metrics.json"), "w") as f:
                 f.write(metrics.to_json())
 
+        return metrics
+
 
 if __name__ == "__main__":
-    single_system = SingleSystem(list(DatasetEnum), save=False)
+    single_system = SingleSystem(list(Dataset), save=False)
     single_system.run_all()

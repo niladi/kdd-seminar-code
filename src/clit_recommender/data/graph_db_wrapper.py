@@ -3,7 +3,7 @@
 from collections import defaultdict
 from typing import Dict, List, Tuple
 from SPARQLWrapper import JSON, SPARQLWrapper
-from domain.datasets import DatasetEnum
+from domain.datasets import Dataset
 
 ACTUAL_KEY = "ACTUAL"
 
@@ -13,7 +13,7 @@ class GraphDBWrapper:
     _client: SPARQLWrapper
     _datasets: List[str]
 
-    def __init__(self, datasets: List[DatasetEnum] = list(DatasetEnum)) -> None:
+    def __init__(self, datasets: List[Dataset] = list(Dataset)) -> None:
         self._client = SPARQLWrapper(
             "http://localhost:7200/repositories/KDD", returnFormat=JSON
         )
@@ -107,7 +107,7 @@ class GraphDBWrapper:
 
 
 if __name__ == "__main__":
-    g = GraphDBWrapper([DatasetEnum.MED_MENTIONS])
+    g = GraphDBWrapper([Dataset.MED_MENTIONS])
     print(len(g.get_all_systems()))
     print(len(g.get_systems_on_datasets()))
     # print(g.get_count())

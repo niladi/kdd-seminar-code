@@ -6,7 +6,7 @@ from os.path import isdir, exists
 from typing import List, Union
 from urllib.parse import quote
 
-from domain.datasets import DatasetEnum
+from domain.datasets import Dataset
 from pynif import NIFCollection, NIFContext
 from rdflib import RDF, Graph, Literal, Namespace, URIRef
 from tqdm.auto import tqdm
@@ -24,7 +24,7 @@ from clit_recommender.util import flat_map, iterate_dirs
 
 class NifFactory(ABC):
     _md_path: str
-    _dataset_list: List[DatasetEnum]
+    _dataset_list: List[Dataset]
     _override: bool = False
     _pbar: tqdm
 
@@ -34,7 +34,7 @@ class NifFactory(ABC):
         self._override = override
 
     @abstractmethod
-    def _run(self, dataset: DatasetEnum) -> None:
+    def _run(self, dataset: Dataset) -> None:
         raise NotImplementedError()
 
     @abstractmethod
@@ -93,7 +93,7 @@ class NifAddCollectionUriFactory(NifFactory):
         self._graph.serialize(file, format="ttl")
         print("Done Saving")
 
-    def _run(self, dataset: DatasetEnum) -> None:
+    def _run(self, dataset: Dataset) -> None:
         dataset_path = f"{DATASETS_PATH}/{dataset.filename}"
         collection = self.get_nif_collection(dataset_path)
         collection_uri = URIRef(dataset.uri)
@@ -135,7 +135,7 @@ class NifClitResultFactory(NifFactory):
             )
         )
 
-    def _run(self, dataset: DatasetEnum) -> None:
+    def _run(self, dataset: Dataset) -> None:
         dataset = dataset.filename
         aifb_namespace = Namespace("http://aifb.kit.edu/clit/recommender/")
         nif_namespace = Namespace(
@@ -312,6 +312,6 @@ if __name__ == "__main__":
 
     # Collection URL Casual Domain
     NifAddCollectionUriFactory(
-        [DatasetEnum.AIDA_YAGO2, DatasetEnum.KORE_50],
+        [Dataset.AIDA_YAGO2, Dataset.KORE_50],
         True,
     )()

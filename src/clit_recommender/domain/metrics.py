@@ -102,11 +102,11 @@ class Metrics:
             for pred_span in pred_spans:
                 in_gold = False
                 for gold_span in gold:
-                    if pred_span[0] == gold_span[0]:
+                    if pred_span[0] == gold_span[0]:  # Is text the Same
                         if (
-                            pred_span[1] == gold_span[1]
-                            or pred_span[1] - 1 == gold_span[1]
-                            or pred_span[1] + 1 == gold_span[1]
+                            pred_span[1] == gold_span[1]  # Offset is the same
+                            or pred_span[1] - 1 == gold_span[1]  # Offset is -1
+                            or pred_span[1] + 1 == gold_span[1]  # Offset is +1
                         ):
                             tp.add(gold_span)
                             in_gold = True

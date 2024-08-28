@@ -3,13 +3,13 @@ from enum import Enum
 
 
 @dataclass
-class Dataset:
+class DatasetEntry:
     label: str
     uri: str
     filename: str
 
 
-class DatasetEnum(Dataset, Enum):
+class Dataset(DatasetEntry, Enum):
     MED_MENTIONS = (
         "MedMentions",
         "http://med-mentions.niladi.de/all",
@@ -33,7 +33,7 @@ class DatasetEnum(Dataset, Enum):
 
 if __name__ == "__main__":
 
-    for dataset in DatasetEnum:
+    for dataset in Dataset:
         print(dataset.label)
         print(dataset.uri)
         print(dataset.filename)

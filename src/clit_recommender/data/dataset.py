@@ -2,6 +2,7 @@
 
 import json
 from dataclasses import dataclass
+from multiprocessing import freeze_support
 from os.path import join
 from typing import Dict, Iterator, List, Self
 
@@ -9,12 +10,14 @@ from typing import Dict, Iterator, List, Self
 from torch import Tensor
 from torch.utils.data import IterableDataset
 
-from clit_recommender.domain.datasets import DatasetEnum
+from clit_recommender.data.best_graphs import BestGraph
+from clit_recommender.domain.datasets import Dataset
 from clit_recommender import BEST_GRAPHS_PATH, GraphPresentation
 from clit_recommender.config import BEST_GRAPHS_JSON_FILE, BEST_GRAPHS_LMDB_FILE, Config
 from clit_recommender.data.graph_db_wrapper import ACTUAL_KEY, GraphDBWrapper
 from clit_recommender.data.lmdb_wrapper import LmdbImmutableDict
 from clit_recommender.domain.clit_result import Mention
+from clit_recommender.domain.systems import System
 
 EVAL_SIZE = 800
 
@@ -53,13 +56,11 @@ class ClitResultDataset(IterableDataset):
         super().__init__()
 
         self._graph_db_wrapper = GraphDBWrapper(config.datasets)
-        self._index_map = {
-            s: i for i, s in enumerate(sorted(self._graph_db_wrapper.get_all_systems()))
-        }
+        self._index_map = config.get_index_map()
         self._config = config
 
     def _create_data_row(self, uri: str, text: str, actual: List[Mention]) -> DataRow:
-        return DataRow(uri, text, [None] * len(self._index_map), actual)
+        return DataRow(uri, text, [None] * len(list(System)), actual)
 
     def __iter__(self) -> Iterator[List[DataRow]]:
         offset = 0
@@ -104,7 +105,11 @@ class ClitRecommenderDataSet(ClitResultDataset):
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self._lmdb = LmdbImmutableDict(join(BEST_GRAPHS_PATH, BEST_GRAPHS_LMDB_FILE))
+        best_graph = BestGraph.from_config(config)
+        if not best_graph.exists():
+            print("Best Graphs not found. Creating...")
+            best_graph.create()
+        self._lmdb = best_graph.load_lmdb()
 
     def __iter__(self) -> Iterator[List[DataRowWithBestGraph]]:
         batch = []
@@ -126,16 +131,13 @@ class ClitRecommenderDataSet(ClitResultDataset):
             yield batch
 
     def __len__(self) -> int:
-        with open(join(BEST_GRAPHS_PATH, BEST_GRAPHS_JSON_FILE), "r") as f:
-            best_graphs = json.load(f)
+
+        best_graphs = BestGraph.from_config(self._config).load_dict()
         count = sum(map(len, best_graphs.values()))
         return int(count / self._config.batch_size) + 1
 
 
 if __name__ == "__main__":
-    l = list(
-        ClitRecommenderDataSet(
-            Config(batch_size=4, datasets=[DatasetEnum.MED_MENTIONS])
-        )
-    )
-    print(len(l))
+    freeze_support()
+    c = ClitRecommenderDataSet(Config(batch_size=4, datasets=[Dataset.MED_MENTIONS]))
+    print(c._index_map)

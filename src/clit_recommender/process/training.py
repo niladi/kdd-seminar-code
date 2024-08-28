@@ -1,3 +1,4 @@
+from multiprocessing import freeze_support
 import os
 from typing import List
 
@@ -12,7 +13,8 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm, trange
 from transformers import get_linear_schedule_with_warmup
 
-from clit_recommender.domain.datasets import DatasetEnum
+from clit_recommender.domain.datasets import Dataset
+from clit_recommender.domain.systems import System
 from clit_recommender.config import Config
 from clit_recommender.util import empty_cache
 from clit_recommender.data.dataset import ClitRecommenderDataSet, DataRow
@@ -21,14 +23,15 @@ from clit_recommender.process.evaluation import Evaluation
 from clit_recommender.process.inference import ClitRecommeder
 
 
-def train(config: Config):
+def train(config: Config, save: bool = True):
 
     path = os.path.join(config.results_dir, "experiments", config.experiment_name)
 
-    os.makedirs(path)
+    if save:
+        os.makedirs(path)
 
-    with open(os.path.join(path, "config.json"), "w") as f:
-        f.write(config.to_json())
+        with open(os.path.join(path, "config.json"), "w") as f:
+            f.write(config.to_json())
 
     processor = ClitRecommeder(config)
     evaluator = Evaluation(processor)
@@ -73,17 +76,19 @@ def train(config: Config):
                 output = processor.process_batch(batch[0])
                 loss = output.loss
 
-                if gradient_accumulation_steps >= 1:
+                if (
+                    gradient_accumulation_steps >= 1
+                ):  # https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation
                     loss = loss / gradient_accumulation_steps
 
             loss = loss.mean()
             total_loss += loss.item()
-            metrics_holder.add_loss_to_last_epoch(loss.item())
             scaler.scale(loss).backward()
 
             if step % 500 == 49:
                 print()
                 print(f"Loss: {total_loss / step}", end="\r")
+                metrics_holder.add_loss_to_last_epoch(total_loss / step)
 
             if (step + 1) % gradient_accumulation_steps == 0:
                 scaler.unscale_(optimizer)
@@ -121,23 +126,43 @@ def train(config: Config):
             print("New Model is Best")
             metrics_holder.set_last_epoch_as_best()
 
-        with open(os.path.join(path, "metrics.json"), "w") as f:
-            f.write(metrics_holder.to_json())
+        if save:
+            with open(os.path.join(path, "metrics.json"), "w") as f:
+                f.write(metrics_holder.to_json())
 
-        with open(os.path.join(path, "summary.txt"), "w") as f:
-            f.write("Result Metrics\n")
-            f.write(
-                next(
-                    iter(metrics_holder.get_best_epoch().result_metrics.values())
-                ).get_summary()
-            )
-            f.write("\nPrediction Metrics\n")
-            f.write(
-                next(
-                    iter(metrics_holder.get_best_epoch().prediction_metrics.values())
-                ).get_summary()
-            )
+            with open(os.path.join(path, "summary.txt"), "w") as f:
+                f.write("Result Metrics\n")
+                f.write(
+                    next(
+                        iter(metrics_holder.get_best_epoch().result_metrics.values())
+                    ).get_summary()
+                )
+                f.write("\nPrediction Metrics\n")
+                f.write(
+                    next(
+                        iter(
+                            metrics_holder.get_best_epoch().prediction_metrics.values()
+                        )
+                    ).get_summary()
+                )
+        return next(iter(metrics_holder.get_best_epoch().result_metrics.values()))
 
 
 if __name__ == "__main__":
-    train(Config(depth=1, datasets=list(DatasetEnum)))
+    freeze_support()
+    train(
+        Config(
+            depth=1,
+            datasets=list(Dataset),
+            systems=[
+                System.BABEFLY,
+                System.DBPEDIA_SPOTLIGHT,
+                System.OPEN_TAPIOCA,
+                System.REFINED_MD_PROPERTIES,
+                System.REL_MD_PROPERTIES,
+                System.SPACY_MD_PROPERTIES,
+                System.TAGME,
+                System.TEXT_RAZOR,
+            ],
+        )
+    )

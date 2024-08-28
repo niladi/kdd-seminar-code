@@ -47,3 +47,15 @@ def empty_cache(device):
     else:
         # For CPU and other devices, there's no cache to empty.
         pass
+
+
+def create_hot_vector(indices, length):
+    # Initialize a vector of zeros
+    one_hot = ["0"] * length
+
+    # Set the positions in the indices list to 1
+    for idx in indices:
+        one_hot[idx] = "1"
+
+    # Convert list to a string
+    return "".join(one_hot)
