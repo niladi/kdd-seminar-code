@@ -34,8 +34,8 @@ class BestGraphIO(BestGraphBase):
         return LmdbImmutableDict(join(self.path, BEST_GRAPHS_LMDB_FILE))
 
     def save(self, best_graphs: Dict[str, List[GraphPresentation]]) -> None:
-        with open(join(self.path, "dataset_and_systems.json"), "w") as f:
-            json.dump({"systems": self.systems, "datasets": self.datasets}, f)
+        with open(join(self.path, "config.json"), "w") as f:
+            f.write(self.config.to_json())
 
         # Dump _best_graph to JSON
         with open(join(self.path, BEST_GRAPHS_JSON_FILE), "w") as f:

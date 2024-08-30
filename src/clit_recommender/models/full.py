@@ -1,6 +1,7 @@
 import operator
-from data.dataset import DataRow
 
+
+from clit_recommender.data.dataset.clit_result_dataset import DataRow
 from clit_recommender.domain.metrics import Metrics
 
 from torch import Tensor, nn

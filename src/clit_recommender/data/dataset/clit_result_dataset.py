@@ -30,7 +30,7 @@ class ClitResultDataset(IterableDataset):
     def __init__(self, config: Config) -> None:
         super().__init__()
 
-        self._graph_db_wrapper = GraphDBWrapper(config.datasets)
+        self._graph_db_wrapper = GraphDBWrapper(config.datasets, config.systems)
         self._index_map = config.get_index_map()
         self._config = config
 

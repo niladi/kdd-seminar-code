@@ -17,6 +17,7 @@ from clit_recommender.data.best_graphs.factory import BestGraphFactory
 from clit_recommender.data.dataset.clit_recommender_data_set import (
     ClitRecommenderDataSet,
 )
+from clit_recommender.data.embeddings_precompute import EmbeddingsPrecompute
 from clit_recommender.domain.datasets import Dataset
 from clit_recommender.domain.systems import System
 from clit_recommender.config import Config
@@ -37,6 +38,12 @@ def train(config: Config, save: bool = True):
         with open(os.path.join(path, "config.json"), "w") as f:
             f.write(config.to_json())
 
+    offline_data = EmbeddingsPrecompute(config)
+    if not offline_data.exists():
+        print("Precomputed Data Missing. Creating ... ")
+        offline_data.generate_uri_to_idx()
+        offline_data.generate_text_embeddings()
+
     processor = ClitRecommeder(config)
     evaluator = Evaluation(processor)
     model = processor.get_model()
@@ -48,7 +55,7 @@ def train(config: Config, save: bool = True):
 
     batch: List[DataRow]
 
-    best_graph_factory = BestGraphFactory.from_config(config)
+    best_graph_factory = BestGraphFactory(config)
 
     if not best_graph_factory.exists():
         print("Best Graphs not exists. Creating ...")
@@ -125,15 +132,15 @@ def train(config: Config, save: bool = True):
         print("Metrics Prediction")
         print(metrics_prediction.get_summary())
 
-        f1 = mean(
+        metric = mean(
             list(
                 map(
-                    lambda x: x.get_f1(),
+                    lambda x: x.get_metric(config.metric_type),
                     metrics_holder.get_best_epoch().prediction_metrics.values(),
                 )
             )
         )
-        if metrics_result.get_f1() > f1:
+        if metrics_result.get_metric(config.metric_type) > metric:
             print("New Model is Best")
             metrics_holder.set_last_epoch_as_best()
 

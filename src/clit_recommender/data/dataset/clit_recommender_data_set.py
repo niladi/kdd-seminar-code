@@ -37,7 +37,7 @@ class ClitRecommenderDataSet(ClitResultDataset):
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        best_graph = BestGraphIO.from_config(config)
+        best_graph = BestGraphIO(config)
         if not best_graph.exists():
             raise AssertionError("The best grpah should exists")
 
@@ -64,6 +64,6 @@ class ClitRecommenderDataSet(ClitResultDataset):
 
     def __len__(self) -> int:
 
-        best_graphs = BestGraphIO.from_config(self._config).load_dict()
+        best_graphs = BestGraphIO(self._config).load_dict()
         count = sum(map(len, best_graphs.values()))
         return int(count / self._config.batch_size) + 1

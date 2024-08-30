@@ -3,7 +3,10 @@
 from collections import defaultdict
 from typing import Dict, List, Tuple
 from SPARQLWrapper import JSON, SPARQLWrapper
-from domain.datasets import Dataset
+
+from clit_recommender.domain.datasets import Dataset
+from clit_recommender.domain.systems import System
+
 
 ACTUAL_KEY = "ACTUAL"
 
@@ -12,13 +15,19 @@ class GraphDBWrapper:
 
     _client: SPARQLWrapper
     _datasets: List[str]
+    _systems: List[str]
 
-    def __init__(self, datasets: List[Dataset] = list(Dataset)) -> None:
+    def __init__(
+        self,
+        datasets: List[Dataset] = list(Dataset),
+        systems: List[System] = list(System),
+    ) -> None:
         self._client = SPARQLWrapper(
             "http://localhost:7200/repositories/KDD", returnFormat=JSON
         )
 
         self._datasets = list(map(lambda s: f"<{s.uri}>", datasets))
+        self._systems = list(map(lambda s: f"<{s.uri}>", systems))
 
     def _query(self, query: str):
         query = f"""
@@ -94,6 +103,7 @@ class GraphDBWrapper:
                 OPTIONAL {{
                     ?m a aifb:ClitResult .
                     ?m aifb:ofSystem ?s .
+                    values ?s {{ {" ".join(self._systems)} }} .
                 }}
             }}
         """

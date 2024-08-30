@@ -1,5 +1,9 @@
+from dataclasses import dataclass
+from operator import attrgetter
 from typing import List, Optional, Self
 from os.path import join
+
+from dataclasses_json import dataclass_json
 
 from clit_recommender import BEST_GRAPHS_PATH
 from clit_recommender.config import Config
@@ -9,18 +13,16 @@ from clit_recommender.util import create_hot_vector
 
 
 class BestGraphBase:
-    datasets: List[Dataset]
-    systems: List[System]
+    config: Config
     path: Optional[str] = None
 
-    def __init__(self, datasets: List[Dataset], systems: List[Dataset]) -> None:
-        self.datasets = datasets
-        self.systems = systems
+    def __init__(self, config: Config) -> None:
+        self.config = config
         if self.path is None:
             self.path = join(
-                BEST_GRAPHS_PATH, create_hot_vector(self.systems, len(list(System)))
+                BEST_GRAPHS_PATH,
+                create_hot_vector(
+                    list(map(attrgetter("index"), self.config.systems)),
+                    len(list(System)),
+                ),
             )
-
-    @classmethod
-    def from_config(cls, config: Config) -> Self:
-        return cls(config.datasets, config.systems)

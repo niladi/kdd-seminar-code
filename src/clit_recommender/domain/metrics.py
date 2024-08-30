@@ -1,11 +1,17 @@
 # %%
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List
 
 from dataclasses_json import dataclass_json
 from numpy import mean
-import numpy as np
+
+
+class MetricType(str, Enum):
+    F1 = "F1"
+    PRECISSION = "PRECISSION"
+    RECALL = "RECALL"
 
 
 @dataclass_json
@@ -60,79 +66,19 @@ class Metrics:
     def get_accuracy(self):
         return 1.0 * self.tp / (self.num_gold_spans + 1e-8)
 
+    def get_metric(self, metric: MetricType):
+        if metric == MetricType.F1:
+            return self.get_f1()
+        elif metric == MetricType.PRECISSION:
+            return self.get_precision()
+        elif metric == MetricType.RECALL:
+            return self.get_recall()
+        else:
+            raise ValueError("Unknown metric")
+
     @classmethod
     def zeros(cls):
         return Metrics(num_gold_spans=0, tp=0, fp=0, fn=0)
-
-    @classmethod
-    def evaluate_matrices(cls, predicted, expected):
-
-        real = np.matrix(predicted)
-        predicted = np.matrix(expected)
-
-        diff = real - predicted
-
-        # Correct is 0
-        # FP is -1
-        # FN is 1
-
-        tp = len(np.where(diff == 0)[0])
-        fp = len(np.where(diff == -1)[0])
-        fn = len(np.where(diff == 1)[0])
-
-        metrics = Metrics(
-            num_gold_spans=len(real),
-            tp=tp,
-            fp=fp,
-            fn=fn,
-            num_docs=1,
-            example_errors=[],
-        )
-        return metrics
-
-    @classmethod
-    def evaluate_results(cls, gold, pred_spans, doc_title="", soft=True):
-        num_gold_spans = len(gold)
-        if not soft:
-            tp = pred_spans & gold
-            fp = pred_spans - gold
-            fn = gold - pred_spans
-        else:
-            tp, fp = set(), set()
-            for pred_span in pred_spans:
-                in_gold = False
-                for gold_span in gold:
-                    if pred_span[0] == gold_span[0]:  # Is text the Same
-                        if (
-                            pred_span[1] == gold_span[1]  # Offset is the same
-                            or pred_span[1] - 1 == gold_span[1]  # Offset is -1
-                            or pred_span[1] + 1 == gold_span[1]  # Offset is +1
-                        ):
-                            tp.add(gold_span)
-                            in_gold = True
-                            break
-                if not in_gold:
-                    fp.add(pred_span)
-            fn = gold - tp
-
-        fp_errors = sorted(fp, key=lambda x: x[1])[:5]
-        fn_errors = sorted(fn, key=lambda x: x[1])[:5]
-
-        metrics = Metrics(
-            num_gold_spans=num_gold_spans,
-            tp=len(tp),
-            fp=len(fp),
-            fn=len(fn),
-            num_docs=1,
-            example_errors=[
-                {
-                    "doc_title": doc_title,
-                    "fp_errors": fp_errors,
-                    "fn_errors": fn_errors,
-                }
-            ],
-        )
-        return metrics
 
 
 @dataclass

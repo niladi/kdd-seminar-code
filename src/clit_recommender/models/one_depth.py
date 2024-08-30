@@ -1,7 +1,8 @@
 from torch import Tensor, nn
 
 from clit_recommender.config import Config
-from clit_recommender.data.dataset.DataRowWithBestGraph import DataRowWithBestGraph
+
+from clit_recommender.data.dataset.clit_recommender_data_set import DataRowWithBestGraph
 from clit_recommender.models.base import ClitRecommenderModel, ModelResult
 from clit_recommender.models.clit_mock import Graph
 

@@ -1,10 +1,9 @@
 import itertools
-import json
 from functools import lru_cache
 from multiprocessing import freeze_support
-from os import mkdir, remove
-from os.path import exists, join
-from typing import Dict, Iterable, List, Self
+from os import mkdir
+from os.path import exists
+from typing import Iterable, List
 
 
 import torch
@@ -12,36 +11,25 @@ import torch.multiprocessing
 from pqdm.processes import pqdm
 from tqdm.auto import tqdm
 
-from clit_recommender import BEST_GRAPHS_PATH
-from clit_recommender.config import BEST_GRAPHS_JSON_FILE, BEST_GRAPHS_LMDB_FILE, Config
+from clit_recommender.config import Config
+
+
 from clit_recommender.data.best_graphs.io import BestGraphIO
 from clit_recommender.data.dataset.clit_result_dataset import ClitResultDataset
 from clit_recommender.data.dataset.clit_result_dataset import DataRow
 from clit_recommender.data.graph_db_wrapper import GraphDBWrapper
-from clit_recommender.data.lmdb_wrapper import LmdbImmutableDict
 from clit_recommender.domain.datasets import Dataset
 from clit_recommender.domain.metrics import Metrics
 from clit_recommender.domain.systems import System
 from clit_recommender.models.clit_mock import (
     Graph,
-    GraphPresentation,
     IntersectionNode,
     MajorityVoting,
     UnionNode,
 )
-from clit_recommender.util import create_hot_vector
 
 
 class BestGraphFactory(BestGraphIO):
-
-    path: str
-    datasets: List[Dataset]
-    systems: List[System]
-
-    def __init__(self, datasets: List[Dataset], systems: List[Dataset]) -> None:
-        
-        self.path = 
-    
 
     @staticmethod
     @lru_cache
@@ -61,8 +49,7 @@ class BestGraphFactory(BestGraphIO):
 
         return tensors
 
-    @staticmethod
-    def get_best_graph(row: DataRow, graphs: Iterable[Graph]):
+    def get_best_graph(self, row: DataRow, graphs: Iterable[Graph]):
         best_results = []
         current_metric: Metrics = Metrics.zeros()
         current_size = 0
@@ -75,39 +62,43 @@ class BestGraphFactory(BestGraphIO):
             metrics = Metrics.evaluate_results(actual, set(res))
             s = sum(map(sum, graph.to_matrix()))
 
-            if metrics.get_f1() == current_metric.get_f1():
+            if metrics.get_metric(self.config.metric_type) == current_metric.get_metric(
+                self.config.metric_type
+            ):
                 if s < current_size:
                     best_results = [graph]
                     current_size = s
                 elif s == current_size:
                     best_results.append(graph)
-            elif metrics.get_f1() > current_metric.get_f1():
+            elif metrics.get_metric(
+                self.config.metric_type
+            ) > current_metric.get_metric(self.config.metric_type):
                 best_results = [graph]
                 current_metric = metrics
                 current_size = s
         return best_results
 
-    @staticmethod
-    def process_batch(batch: List[DataRow], graphs: Iterable[Graph]):
+    def process_batch(self, batch: List[DataRow], graphs: Iterable[Graph]):
         best_graph = {}
         for row in batch:
             if row.context_uri in best_graph:
                 raise ValueError("Duplicate context_uri")
             best_graph[row.context_uri] = list(
-                map(lambda g: g.to_matrix(), BestGraphFactory.get_best_graph(row, graphs))
+                map(
+                    lambda g: g.to_matrix(),
+                    self.get_best_graph(row, graphs),
+                )
             )
         return best_graph
-
-    
 
     def create(self, load_checkpoint=True, error_on_existing=False):
         best_graph = {}
         if not exists(self.path):
             mkdir(self.path)
-        elif load_checkpoint:
+        elif load_checkpoint and self.exists():
             best_graph = self.load_dict()
 
-        for dataset in tqdm(self.datasets):
+        for dataset in tqdm(self.config.datasets):
             _graph_db_wrapper = GraphDBWrapper([dataset])
 
             _amount = len(list(System))
@@ -118,7 +109,7 @@ class BestGraphFactory(BestGraphIO):
                 load_best_graph=False,
                 batch_size=16,
                 datasets=[dataset],
-                systems=self.systems,
+                systems=self.config.systems,
             )
             index_map = _c.get_index_map()
             d = ClitResultDataset(_c)

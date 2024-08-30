@@ -2,7 +2,7 @@
 
 from typing import Dict, List
 from os.path import join, exists
-from os import remove
+from os import mkdir, remove
 import json
 
 import torch
@@ -40,11 +40,17 @@ class EmbeddingsPrecompute:
 
         model = AutoModel.from_pretrained(model_name)
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-
+        dataset = ClitResultDataset(self._config)
         row: DataRow
-        for row in tqdm(flat_map(lambda x: x, ClitResultDataset(self._config))):
+        for row in tqdm(flat_map(lambda x: x, dataset), total=len(dataset)):
             idx = uri_to_idx.get(row.context_uri)
-            inputs = tokenizer(row.context_text, return_tensors="pt")
+            inputs = tokenizer(
+                row.context_text,
+                padding="max_length",
+                truncation=True,
+                max_length=tokenizer.model_max_length,
+                return_tensors="pt",
+            )
 
             # Get embeddings
             with torch.no_grad():
@@ -67,6 +73,8 @@ class EmbeddingsPrecompute:
             flat_map(lambda x: x, ClitResultDataset(self._config))
         ):
             uri_to_idx[row.context_uri] = index
+        if not exists(EMBEDDINGS_PATH):
+            mkdir(EMBEDDINGS_PATH)
 
         p = join(EMBEDDINGS_PATH, self.uri_to_idx_filename_lmdb)
 
@@ -78,6 +86,11 @@ class EmbeddingsPrecompute:
         with open(join(EMBEDDINGS_PATH, self.uri_to_idx_filename_json), "w") as f:
             json.dump(uri_to_idx, f)
 
+    def exists(self) -> bool:
+        return exists(join(EMBEDDINGS_PATH, self.uri_to_idx_filename_lmdb)) and exists(
+            join(EMBEDDINGS_PATH, self.embeddings_filname)
+        )
+
     def load_uri_to_idx(self) -> LmdbImmutableDict:
         return LmdbImmutableDict(join(EMBEDDINGS_PATH, self.uri_to_idx_filename_lmdb))
 
@@ -88,6 +101,6 @@ class EmbeddingsPrecompute:
 if __name__ == "__main__":
     _config = Config()
     offline_data = EmbeddingsPrecompute(_config)
-    offline_data.generate_uri_to_idx()
+    # offline_data.generate_uri_to_idx()
     offline_data.generate_text_embeddings()
     print("Done")

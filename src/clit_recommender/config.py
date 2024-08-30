@@ -3,6 +3,7 @@ from time import time
 from typing import Dict, List, Optional, Type
 from dataclasses_json import dataclass_json
 from clit_recommender.domain.datasets import Dataset
+from clit_recommender.domain.metrics import MetricType
 from clit_recommender.domain.systems import System
 
 
@@ -23,11 +24,14 @@ class Config:
     seed: Optional[int] = 500
     datasets: Optional[List[Dataset]] = None
     systems: Optional[List[System]] = None
+    metric_type: MetricType = MetricType.F1
     eval_factor: int = 0.15
 
     def __post_init__(self):
         if self.experiment_name is None:
-            self.experiment_name = f"Clit-Recommender-Experiment-{int(time())}"
+            self.experiment_name = (
+                f"Clit-Recommender-Experiment-{int(time())}-{self.metric_type}"
+            )
 
         if self.datasets is None:
             self.datasets = list(Dataset)
