@@ -165,21 +165,3 @@ class BestGraphFactory(BestGraphIO):
                     best_graph[_key] = _value
 
         self.save(best_graph)
-
-
-if __name__ == "__main__":
-    freeze_support()
-
-    BestGraphFactory(
-        datasets=list(Dataset),
-        systems=[
-            System.BABEFLY,
-            System.DBPEDIA_SPOTLIGHT,
-            System.OPEN_TAPIOCA,
-            System.REFINED_MD_PROPERTIES,
-            System.REL_MD_PROPERTIES,
-            System.SPACY_MD_PROPERTIES,
-            System.TAGME,
-            System.TEXT_RAZOR,
-        ],
-    ).create()
