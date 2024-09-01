@@ -87,7 +87,8 @@ class Epoch:
     Represents an epoch in a training process.
 
     Attributes:
-        metrics (Dict[str, Metrics]): A dictionary of evaluation metrics for entity linking (datset name, Metrics).
+        result_metrics (Dict[str, Metrics]): Metric for results of the mention detection task
+        prediction_metrics (Dict[str, Metrics]): Metric for prediciton of the Graph
         loss (List[float]): A list of loss values for each iteration in the epoch.
     """
 

@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 from clit_recommender.config import Config
+from clit_recommender.domain.data_row import DataRow
 from clit_recommender.data.graph_db_wrapper import ACTUAL_KEY, GraphDBWrapper
 from clit_recommender.domain.clit_result import Mention
 from clit_recommender.domain.systems import System
@@ -9,17 +9,6 @@ from torch.utils.data import IterableDataset
 
 
 from typing import Dict, Iterator, List
-
-
-@dataclass
-class DataRow:
-    context_uri: str
-    context_text: str
-    results: List[List[Mention]]
-    actual: List[Mention]
-
-    def __hash__(self) -> int:
-        return hash(self.context_uri)
 
 
 class ClitResultDataset(IterableDataset):

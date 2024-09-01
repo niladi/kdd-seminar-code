@@ -12,24 +12,10 @@ from torch import Tensor
 from typing import Iterator, List, Self
 
 
-from clit_recommender.data.dataset.clit_result_dataset import DataRow
+from clit_recommender.domain.data_row import DataRow, DataRowWithBestGraph
 
 
 from dataclasses import dataclass
-
-
-@dataclass
-class DataRowWithBestGraph(DataRow):
-    best_graph: GraphPresentation
-
-    @classmethod
-    def from_data_row(cls, row: DataRow, best_graph: GraphPresentation) -> Self:
-        return cls(
-            row.context_uri, row.context_text, row.results, row.actual, best_graph
-        )
-
-    def __hash__(self) -> int:
-        return hash((self.context_uri, self.best_graph))
 
 
 class ClitRecommenderDataSet(ClitResultDataset):

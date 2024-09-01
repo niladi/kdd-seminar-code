@@ -16,17 +16,20 @@ from clit_recommender.config import Config
 
 from clit_recommender.data.best_graphs.io import BestGraphIO
 from clit_recommender.data.dataset.clit_result_dataset import ClitResultDataset
-from clit_recommender.data.dataset.clit_result_dataset import DataRow
+from clit_recommender.domain.data_row import DataRow
 from clit_recommender.data.graph_db_wrapper import GraphDBWrapper
 from clit_recommender.domain.datasets import Dataset
 from clit_recommender.domain.metrics import Metrics
 from clit_recommender.domain.systems import System
-from clit_recommender.models.clit_mock import (
+from clit_recommender.domain.clit_mock.graph import (
     Graph,
+)
+from clit_recommender.domain.clit_mock.combined_node import (
     IntersectionNode,
     MajorityVoting,
     UnionNode,
 )
+from clit_recommender.process.evaluation import Evaluation
 
 
 class BestGraphFactory(BestGraphIO):
@@ -59,7 +62,7 @@ class BestGraphFactory(BestGraphIO):
             if res is None or len(res) == 0:
                 continue
 
-            metrics = Metrics.evaluate_results(actual, set(res))
+            metrics = Evaluation.evaluate_results(actual, set(res))
             s = sum(map(sum, graph.to_matrix()))
 
             if metrics.get_metric(self.config.metric_type) == current_metric.get_metric(
@@ -105,7 +108,6 @@ class BestGraphFactory(BestGraphIO):
             used = _graph_db_wrapper.get_systems_on_datasets()
             _c = Config(
                 depth=1,
-                md_modules_count=_amount,
                 load_best_graph=False,
                 batch_size=16,
                 datasets=[dataset],

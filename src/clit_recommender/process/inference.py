@@ -7,7 +7,8 @@ from clit_recommender.config import Config
 from clit_recommender.data.dataset.clit_recommender_data_set import DataRowWithBestGraph
 from clit_recommender.data.embeddings_precompute import EmbeddingsPrecompute
 from clit_recommender.data.lmdb_wrapper import LmdbImmutableDict
-from clit_recommender.models.base import ClitRecommenderModel, ModelResult
+from clit_recommender.domain.model_result import ModelResult
+from clit_recommender.models.base import ClitRecommenderModel
 
 from clit_recommender.models.factory import model_factory
 

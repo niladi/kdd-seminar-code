@@ -12,11 +12,10 @@ from clit_recommender.domain.systems import System
 class Config:
     epochs: int = 2
     batch_size: int = 1
-    md_modules_count: int = 14
     depth: int = 1
     results_dir: str = "/Users/niladi/workspace/seminar-kdd/code/data/results"
     lm_model_name: str = "roberta-large"
-    device = "cpu"
+    device: str = "cpu"
     experiment_name: str = None
     model: str = "ClitRecommenderModelOneDepth"
     load_best_graph: bool = True
@@ -26,6 +25,7 @@ class Config:
     systems: Optional[List[System]] = None
     metric_type: MetricType = MetricType.F1
     eval_factor: int = 0.15
+    md_modules_count: int = len(list(System))
 
     def __post_init__(self):
         if self.experiment_name is None:

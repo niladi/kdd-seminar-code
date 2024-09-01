@@ -11,7 +11,7 @@ from transformers import AutoModel, AutoTokenizer
 
 
 from clit_recommender.data.dataset.clit_result_dataset import ClitResultDataset
-from clit_recommender.data.dataset.clit_result_dataset import DataRow
+from clit_recommender.domain.data_row import DataRow
 
 from clit_recommender import EMBEDDINGS_PATH
 from clit_recommender.config import Config

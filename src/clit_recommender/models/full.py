@@ -1,14 +1,15 @@
 import operator
 
 
-from clit_recommender.data.dataset.clit_result_dataset import DataRow
+from clit_recommender.domain.data_row import DataRow
 from clit_recommender.domain.metrics import Metrics
 
 from torch import Tensor, nn
 
-from clit_recommender.models.base import ClitRecommenderModel, ModelResult
+from clit_recommender.domain.model_result import ModelResult
+from clit_recommender.models.base import ClitRecommenderModel
 from clit_recommender.config import Config
-from clit_recommender.models.clit_mock import Graph
+from clit_recommender.domain.clit_mock.graph import Graph
 
 
 class ClitRecommenderLoss(nn.Module):

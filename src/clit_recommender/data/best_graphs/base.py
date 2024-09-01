@@ -1,14 +1,11 @@
-from dataclasses import dataclass
 from operator import attrgetter
-from typing import List, Optional, Self
+from typing import Optional
 from os.path import join
 
-from dataclasses_json import dataclass_json
 
 from clit_recommender import BEST_GRAPHS_PATH
 from clit_recommender.config import Config
-from clit_recommender.domain.datasets import Dataset
-from clit_recommender.domain.systems import System
+
 from clit_recommender.util import create_hot_vector
 
 
@@ -23,6 +20,7 @@ class BestGraphBase:
                 BEST_GRAPHS_PATH,
                 create_hot_vector(
                     list(map(attrgetter("index"), self.config.systems)),
-                    len(list(System)),
+                    config.md_modules_count,
                 ),
+                config.metric_type.lower(),
             )

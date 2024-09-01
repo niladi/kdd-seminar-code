@@ -1,9 +1,9 @@
 import json
-from os import remove
+from os import mkdir, remove
 from typing import Dict, List
 from os.path import join, exists
 
-from clit_recommender import BEST_GRAPHS_PATH, GraphPresentation
+from clit_recommender import GraphPresentation
 from clit_recommender.config import BEST_GRAPHS_JSON_FILE, BEST_GRAPHS_LMDB_FILE
 from clit_recommender.data.best_graphs.base import BestGraphBase
 from clit_recommender.data.lmdb_wrapper import LmdbImmutableDict
@@ -34,6 +34,9 @@ class BestGraphIO(BestGraphBase):
         return LmdbImmutableDict(join(self.path, BEST_GRAPHS_LMDB_FILE))
 
     def save(self, best_graphs: Dict[str, List[GraphPresentation]]) -> None:
+        if not exists(self.path):
+            mkdir(self.path)
+
         with open(join(self.path, "config.json"), "w") as f:
             f.write(self.config.to_json())
 
@@ -41,7 +44,7 @@ class BestGraphIO(BestGraphBase):
         with open(join(self.path, BEST_GRAPHS_JSON_FILE), "w") as f:
             json.dump(best_graphs, f)
 
-        lmdb_path = join(BEST_GRAPHS_PATH, BEST_GRAPHS_LMDB_FILE)
+        lmdb_path = join(self.path, BEST_GRAPHS_LMDB_FILE)
 
         if exists(lmdb_path):
             remove(lmdb_path)

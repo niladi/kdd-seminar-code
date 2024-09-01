@@ -3,8 +3,9 @@ from torch import Tensor, nn
 from clit_recommender.config import Config
 
 from clit_recommender.data.dataset.clit_recommender_data_set import DataRowWithBestGraph
-from clit_recommender.models.base import ClitRecommenderModel, ModelResult
-from clit_recommender.models.clit_mock import Graph
+from clit_recommender.domain.model_result import ModelResult
+from clit_recommender.models.base import ClitRecommenderModel
+from clit_recommender.domain.clit_mock.graph import Graph
 
 
 class ClitRecommenderModelOneDepth(ClitRecommenderModel):
@@ -30,7 +31,7 @@ class ClitRecommenderModelOneDepth(ClitRecommenderModel):
         if data_row is not None:
             values, g_type = Graph.create(
                 self._config, data_row.best_graph
-            ).get_last_level_tuple()
+            ).get_last_level_tuple_roundet()
             target = [0.0] * 3
             target[g_type.get_index()] = 1.0
             classification_loss = nn.CrossEntropyLoss()(

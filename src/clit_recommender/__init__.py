@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Tuple, TypeAlias, Union
 
 from torch import Tensor
 
@@ -13,4 +13,4 @@ BEST_GRAPHS_PATH = f"{DATA_PATH}/best_graphs"
 EMBEDDINGS_PATH = f"{DATA_PATH}/embeddings"
 
 
-type GraphPresentation = Union[Tuple[Tuple[float, float, float], ...], Tensor]
+GraphPresentation: TypeAlias = Union[Tuple[Tuple[float, float, float], ...], Tensor]

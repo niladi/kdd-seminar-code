@@ -22,13 +22,64 @@ from clit_recommender.domain.datasets import Dataset
 from clit_recommender.domain.systems import System
 from clit_recommender.config import Config
 from clit_recommender.util import empty_cache
-from clit_recommender.data.dataset.clit_result_dataset import DataRow
+from clit_recommender.domain.data_row import DataRow
 from clit_recommender.domain.metrics import Metrics, MetricsHolder
 from clit_recommender.process.evaluation import Evaluation
 from clit_recommender.process.inference import ClitRecommeder
 
 
-def train(config: Config, save: bool = True):
+def _offline_data(config: Config):
+    print("Checking Offline Data.")
+
+    offline_data = EmbeddingsPrecompute(config)
+    if not offline_data.exists():
+        print("Precomputed Data Missing. Creating ... ")
+        offline_data.generate_uri_to_idx()
+        offline_data.generate_text_embeddings()
+
+    best_graph_factory = BestGraphFactory(config)
+
+    if not best_graph_factory.exists():
+        print("Best Graphs not exists. Creating ...")
+        best_graph_factory.create()
+    print("Offline Data. Done.")
+
+
+def cross_train(
+    config: Config,
+    training_sets: List[Dataset],
+    eval_sets: List[Dataset],
+    save: bool = True,
+):
+    config.datasets = training_sets + eval_sets
+
+    _offline_data(config)
+
+    path = os.path.join(
+        config.results_dir, "experiments_cross_domain", config.experiment_name
+    )
+    if save:
+        os.makedirs(path)
+    random.seed(config.seed)
+    config.datasets = training_sets
+    if save:
+        with open(os.path.join(path, "config_train.json"), "w") as f:
+            f.write(config.to_json())
+
+    train = list(DataLoader(ClitRecommenderDataSet(config), batch_size=None))
+    random.shuffle(train)
+    config.datasets = eval_sets
+    if save:
+        with open(os.path.join(path, "config_eval.json"), "w") as f:
+            f.write(config.to_json())
+    eval = list(DataLoader(ClitRecommenderDataSet(config), batch_size=None))
+    random.shuffle(eval)
+
+    _train(config, train, eval, path, save)
+
+
+def train_full(config: Config, save: bool = True):
+    _offline_data(config)
 
     path = os.path.join(config.results_dir, "experiments", config.experiment_name)
 
@@ -38,11 +89,24 @@ def train(config: Config, save: bool = True):
         with open(os.path.join(path, "config.json"), "w") as f:
             f.write(config.to_json())
 
-    offline_data = EmbeddingsPrecompute(config)
-    if not offline_data.exists():
-        print("Precomputed Data Missing. Creating ... ")
-        offline_data.generate_uri_to_idx()
-        offline_data.generate_text_embeddings()
+    data_loader = list(DataLoader(ClitRecommenderDataSet(config), batch_size=None))
+    random.seed(config.seed)
+    random.shuffle(data_loader)
+    eval_size = int(len(data_loader) * config.eval_factor)
+
+    eval = data_loader[:eval_size]
+    train = data_loader[eval_size:]
+
+    _train(config, train, eval, path, save)
+
+
+def _train(
+    config: Config,
+    train: List[List[DataRow]],
+    eval: List[List[DataRow]],
+    path: str,
+    save: bool = True,
+):
 
     processor = ClitRecommeder(config)
     evaluator = Evaluation(processor)
@@ -54,20 +118,6 @@ def train(config: Config, save: bool = True):
     metrics_holder = MetricsHolder()
 
     batch: List[DataRow]
-
-    best_graph_factory = BestGraphFactory(config)
-
-    if not best_graph_factory.exists():
-        print("Best Graphs not exists. Creating ...")
-        best_graph_factory.create()
-
-    data_loader = list(DataLoader(ClitRecommenderDataSet(config), batch_size=None))
-    random.seed(config.seed)
-    random.shuffle(data_loader)
-    eval_size = int(len(data_loader) * config.eval_factor)
-
-    eval = data_loader[:eval_size]
-    train = data_loader[eval_size:]
     optimizer = AdamW(model.parameters(), lr=1e-5, eps=1e-8)
     gradient_accumulation_steps: int = 2
     num_warmup_steps: int = 4
@@ -126,10 +176,10 @@ def train(config: Config, save: bool = True):
         metrics_holder.set_result_metrics_to_last_epoch(metrics_result)
         metrics_holder.set_prediction_metrics_to_last_epoch(metrics_prediction)
 
-        print("Metrics Result")
+        print("Metrics Result (MD Task)")
         print(metrics_result.get_summary())
 
-        print("Metrics Prediction")
+        print("Metrics Prediction (Graph prediction Task)")
         print(metrics_prediction.get_summary())
 
         metric = mean(
@@ -168,7 +218,7 @@ def train(config: Config, save: bool = True):
 
 if __name__ == "__main__":
     freeze_support()
-    train(
+    train_full(
         Config(
             depth=1,
             datasets=list(Dataset),

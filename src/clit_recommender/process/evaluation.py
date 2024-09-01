@@ -1,7 +1,8 @@
 from typing import Iterable, Tuple
 
-from clit_recommender.models.clit_mock import Graph
-from clit_recommender.data.dataset.clit_result_dataset import DataRow
+from clit_recommender.config import Config
+from clit_recommender.domain.clit_mock.graph import Graph
+from clit_recommender.domain.data_row import DataRow
 from clit_recommender.process.inference import ClitRecommeder
 from clit_recommender.domain.metrics import Metrics
 
@@ -9,7 +10,7 @@ from clit_recommender.domain.metrics import Metrics
 class Evaluation:
     processor: ClitRecommeder
 
-    def __init__(self, processor) -> None:
+    def __init__(self, processor: ClitRecommeder) -> None:
         self.processor = processor
 
     def process_batch(self, batch: Iterable[DataRow]) -> Metrics:
@@ -25,11 +26,13 @@ class Evaluation:
         pred_spans = set(predicted)
         return (
             Evaluation.evaluate_results(gold, pred_spans, data_row.context_text[:20]),
-            Evaluation.evaluate_matrices(g, Graph.create(config, data_row.best_graph)),
+            Evaluation.evaluate_matrices(
+                g, Graph.create(config, data_row.best_graph), config.threshold
+            ),
         )
 
     @staticmethod
-    def evaluate_matrices(predicted: Graph, expected: Graph):
+    def evaluate_matrices(predicted: Graph, expected: Graph, threshold: float):
 
         tp = fp = fn = num = 0
 
@@ -38,33 +41,42 @@ class Evaluation:
                 for i_n, n in enumerate(l.input):
                     num += 1
                     if n.value == 1:
-                        if predicted.levels[l.level].input[i_n].value == 1:
+                        if predicted.levels[l.level].input[i_n].value >= threshold:
                             tp += 1
                         else:
                             fn += 1
                     else:
-                        if predicted.levels[l.level].input[i_n].value == 1:
+                        if predicted.levels[l.level].input[i_n].value >= threshold:
                             fp += 1
 
-        last_exptected, last_exptected_type = expected.get_last_level_tuple()
-        last_predicted, last_predicted_type = predicted.get_last_level_tuple()
+        expected_tuple = expected.get_last_level_tuple_roundet()
+        predicted_tuple = predicted.get_last_level_tuple_roundet()
 
-        if last_exptected_type == last_predicted_type:
-            tp += 3  # todo: is this correct?
+        if expected_tuple is None:
+            return Metrics.zeros()  # TDOD Fix? case 0000.. is best graph
+
+        last_exptected, last_exptected_type = expected_tuple
+        if predicted_tuple is None:
+            fp += 1  # todo: is this correct? The not Selected Type
+            fn += sum(last_exptected)
         else:
-            fp += 1  # todo: is this correct?
-            fn += 1  # todo: is this correct?
-            tp += 1  # todo: is this correct?
+            last_predicted, last_predicted_type = predicted_tuple
+            if last_exptected_type == last_predicted_type:
+                tp += 3  # todo: is this correct?
+            else:
+                fp += 1  # todo: is this correct?
+                fn += 1  # todo: is this correct?
+                tp += 1  # todo: is this correct?
 
-        num += 3
+            num += 3
 
-        tp += sum(1 for a, b in zip(last_predicted, last_exptected) if a == b == 1)
-        fp += sum(
-            1 for a, b in zip(last_predicted, last_exptected) if a == 1 and b == 0
-        )
-        fn += sum(
-            1 for a, b in zip(last_predicted, last_exptected) if a == 0 and b == 1
-        )
+            tp += sum(1 for a, b in zip(last_predicted, last_exptected) if a == b == 1)
+            fp += sum(
+                1 for a, b in zip(last_predicted, last_exptected) if a == 1 and b == 0
+            )
+            fn += sum(
+                1 for a, b in zip(last_predicted, last_exptected) if a == 0 and b == 1
+            )
 
         num += len(last_exptected)
 
@@ -79,7 +91,7 @@ class Evaluation:
         return metrics
 
     @staticmethod
-    def evaluate_results(cls, gold, pred_spans, doc_title="", soft=True):
+    def evaluate_results(gold, pred_spans, doc_title="", soft=True):
         num_gold_spans = len(gold)
         if not soft:
             tp = pred_spans & gold
