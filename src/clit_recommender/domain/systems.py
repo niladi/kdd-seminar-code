@@ -1,8 +1,11 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from dataclasses_json import dataclass_json
 
-@dataclass
+
+@dataclass_json
+@dataclass(frozen=True)
 class SystemEntry:
     index: int
     label: str

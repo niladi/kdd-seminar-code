@@ -1,10 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from time import time
 from typing import Dict, List, Optional, Type
-from dataclasses_json import dataclass_json
+from dataclasses_json import config, dataclass_json
 from clit_recommender.domain.datasets import Dataset
 from clit_recommender.domain.metrics import MetricType
 from clit_recommender.domain.systems import System
+from clit_recommender.util import enum_list_default
 
 
 @dataclass_json
@@ -21,8 +22,8 @@ class Config:
     load_best_graph: bool = True
     threshold: int = 0.5
     seed: Optional[int] = 500
-    datasets: Optional[List[Dataset]] = None
-    systems: Optional[List[System]] = None
+    datasets: Optional[List[Dataset]] = enum_list_default(Dataset)
+    systems: Optional[List[System]] = enum_list_default(System)
     metric_type: MetricType = MetricType.F1
     eval_factor: int = 0.15
     md_modules_count: int = len(list(System))
@@ -33,10 +34,10 @@ class Config:
                 f"Clit-Recommender-Experiment-{int(time())}-{self.metric_type}"
             )
 
-        if self.datasets is None:
+        if self.datasets is None or len(self.datasets) == 0:
             self.datasets = list(Dataset)
 
-        if self.systems is None:
+        if self.systems is None or len(self.systems) == 0:
             self.systems = list(System)
 
     def calculate_output_size(self) -> int:

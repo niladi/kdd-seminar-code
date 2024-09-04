@@ -1,8 +1,12 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
+from typing import List
+
+from dataclasses_json import config, dataclass_json
 
 
-@dataclass
+@dataclass_json
+@dataclass(frozen=True)
 class DatasetEntry:
     label: str
     uri: str
@@ -37,4 +41,3 @@ if __name__ == "__main__":
         print(dataset.label)
         print(dataset.uri)
         print(dataset.filename)
-        print()

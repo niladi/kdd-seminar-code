@@ -1,10 +1,30 @@
+from dataclasses import field
 from os import listdir
 from os.path import isdir, join
 from typing import Any, Iterable
+from ipywidgets.widgets import Layout
+from IPython.display import display
 
-import json
 
+from dataclasses_json import config
 import torch
+
+
+def display_with_layout(*widgets_list):
+    for widget in widgets_list:
+        widget.layout = Layout(width="90%")
+    display(*widgets_list)
+
+
+def enum_list_default(enum_type):  # pylint: disable=invalid-field-call
+    return field(
+        default_factory=list,
+        metadata=config(
+            decoder=lambda enum_list: [
+                enum_type.__bases__[0].from_dict(entry) for entry in enum_list
+            ]
+        ),
+    )
 
 
 def iterate_dirs(path, dir_only=True):

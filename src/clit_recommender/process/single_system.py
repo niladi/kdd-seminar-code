@@ -11,6 +11,7 @@ from clit_recommender.config import Config
 from clit_recommender.domain.data_row import DataRow
 from clit_recommender.domain.clit_mock.graph import Graph
 from clit_recommender.domain.metrics import Metrics
+from clit_recommender.process.evaluation import Evaluation
 
 
 class SingleSystem:
@@ -41,7 +42,9 @@ class SingleSystem:
 
     def run(self, system: str, path: str = ""):
         config = self._config
+
         config.experiment_name = f"{system.split('/')[-1]}-{int(time())}"
+        config.systems = [system]
 
         if self._save:
             path = os.path.join(path, config.experiment_name)
@@ -60,7 +63,7 @@ class SingleSystem:
         metrics = Metrics.zeros()
         for (row,) in tqdm(self._data):
             result = g.forward(row)
-            metrics += Metrics.evaluate_results(set(row.actual), result, soft=True)
+            metrics += Evaluation.evaluate_results(set(row.actual), result, soft=True)
 
         print("System", system)
         print(metrics.get_summary())

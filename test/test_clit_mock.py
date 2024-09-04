@@ -1,16 +1,19 @@
 import torch
 import unittest
 
-from models.clit_mock import (
-    Graph,
+
+from clit_recommender.config import Config
+from clit_recommender.domain.clit_mock.combined_node import (
     IntersectionNode,
     MajorityVoting,
     UnionNode,
 )
-from clit_recommender.config import Config
-from domain.clit_result import Mention
-from data.dataset import DataRow
+from clit_recommender.domain.clit_mock.graph import Graph
+from clit_recommender.domain.clit_result import Mention
+
 import json
+
+from clit_recommender.domain.data_row import DataRow
 
 
 class TestClitMock(unittest.TestCase):
