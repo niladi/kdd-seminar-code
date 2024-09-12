@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import Dict, List, Tuple
 from SPARQLWrapper import JSON, SPARQLWrapper
 
-from clit_recommender.domain.datasets import Dataset
+from clit_recommender.domain.datasets import Dataset, DatasetSplitType
 from clit_recommender.domain.systems import System
 
 
@@ -21,12 +21,13 @@ class GraphDBWrapper:
         self,
         datasets: List[Dataset] = list(Dataset),
         systems: List[System] = list(System),
+        dataset_type: DatasetSplitType = DatasetSplitType.ALL,
     ) -> None:
         self._client = SPARQLWrapper(
             "http://localhost:7200/repositories/KDD", returnFormat=JSON
         )
 
-        self._datasets = list(map(lambda s: f"<{s.uri}>", datasets))
+        self._datasets = list(map(lambda s: f"<{dataset_type.get_uri(s)}>", datasets))
         self._systems = list(map(lambda s: f"<{s.uri}>", systems))
 
     def _query(self, query: str):

@@ -35,6 +35,15 @@ class Dataset(DatasetEntry, Enum):
     RSS_500 = ("Rss500", "http://aksw.org/N3/RSS-500", "RSS-500.ttl")
 
 
+class DatasetSplitType(Enum):
+    TRAIN = "/train"
+    EVAL = "/eval"
+    ALL = ""
+
+    def get_uri(self, dataset: Dataset) -> str:
+        return dataset.uri + self.value
+
+
 if __name__ == "__main__":
 
     for dataset in Dataset:

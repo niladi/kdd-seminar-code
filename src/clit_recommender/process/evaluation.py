@@ -13,8 +13,30 @@ class Evaluation:
     def __init__(self, processor: ClitRecommeder) -> None:
         self.processor = processor
 
-    def process_batch(self, batch: Iterable[DataRow]) -> Metrics:
-        return sum(map(self.process_data_row, batch), Metrics.zeros())
+    def process_dynamic_batch(
+        self, batch: Iterable[DataRow]
+    ) -> Tuple[Metrics, Metrics]:
+        data_row = batch[0]
+        gold = set(data_row.actual)
+        result = self.processor.process_batch(data_row)
+        config = self.processor._config
+        g = Graph.create(config, result.logits)
+        predicted = g.forward(data_row)
+
+        pred_spans = set(predicted)
+
+        results = Evaluation.evaluate_results(
+            gold, pred_spans, data_row.context_text[:20]
+        )
+        best_matrices = Metrics.zeros()
+        for data_row in batch:
+            current = Evaluation.evaluate_matrices(
+                g, Graph.create(config, data_row.best_graph), config.threshold
+            )
+            if current.get_f1() > best_matrices.get_f1():  # TODO Besprechung
+                best_matrices = current
+
+        return results, best_matrices
 
     def process_data_row(self, data_row: DataRow) -> Tuple[Metrics, Metrics]:
         gold = set(data_row.actual)
@@ -48,35 +70,60 @@ class Evaluation:
                     else:
                         if predicted.levels[l.level].input[i_n].value >= threshold:
                             fp += 1
+            tp /= num
+            fp /= num
+            fn /= num
 
         expected_tuple = expected.get_last_level_tuple_roundet()
         predicted_tuple = predicted.get_last_level_tuple_roundet()
+
+        tp_type = fp_type = fn_type = 0
+        num_type = 3
+        tp_system = fp_system = fn_system = 0
+        num_system = expected.intput_size
 
         if expected_tuple is None:
             return Metrics.zeros()  # TDOD Fix? case 0000.. is best graph
 
         last_exptected, last_exptected_type = expected_tuple
         if predicted_tuple is None:
-            fp += 1  # todo: is this correct? The not Selected Type
+            fp += 1
             fn += sum(last_exptected)
         else:
             last_predicted, last_predicted_type = predicted_tuple
+
+            #
+            # Type Metrics
+            #
+
             if last_exptected_type == last_predicted_type:
-                tp += 3  # todo: is this correct?
+                tp_system += 3
             else:
-                fp += 1  # todo: is this correct?
-                fn += 1  # todo: is this correct?
-                tp += 1  # todo: is this correct?
+                fp_type += 1
+                fn_type += 1
+                tp_type += 1
 
-            num += 3
+            tp += tp_type / num_type
+            fp += fp_type / num_type
+            fn += fn_type / num_type
 
-            tp += sum(1 for a, b in zip(last_predicted, last_exptected) if a == b == 1)
-            fp += sum(
+            #
+            # System Metrics
+            #
+
+            tp_system += sum(
+                1 for a, b in zip(last_predicted, last_exptected) if a == b == 1
+            )
+            fp_system += sum(
                 1 for a, b in zip(last_predicted, last_exptected) if a == 1 and b == 0
             )
-            fn += sum(
+            fn_system += sum(
                 1 for a, b in zip(last_predicted, last_exptected) if a == 0 and b == 1
             )
+
+            fp += fp_system / num_system
+            fn += fn_system / num_system
+            tp += tp_system / num_system
 
         num += len(last_exptected)
 

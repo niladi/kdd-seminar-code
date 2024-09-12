@@ -21,11 +21,10 @@ class Config:
     model: str = "ClitRecommenderModelOneDepth"
     load_best_graph: bool = True
     threshold: int = 0.5
-    seed: Optional[int] = 500
+
     datasets: Optional[List[Dataset]] = enum_list_default(Dataset)
     systems: Optional[List[System]] = enum_list_default(System)
     metric_type: MetricType = MetricType.F1
-    eval_factor: int = 0.15
     md_modules_count: int = len(list(System))
 
     def __post_init__(self):

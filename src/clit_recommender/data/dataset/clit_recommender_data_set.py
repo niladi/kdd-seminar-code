@@ -17,12 +17,16 @@ from clit_recommender.domain.data_row import DataRow, DataRowWithBestGraph
 
 from dataclasses import dataclass
 
+from clit_recommender.domain.datasets import DatasetSplitType
+
 
 class ClitRecommenderDataSet(ClitResultDataset):
     _lmdb: LmdbImmutableDict
 
-    def __init__(self, config: Config) -> None:
-        super().__init__(config)
+    def __init__(
+        self, config: Config, split_type: DatasetSplitType = DatasetSplitType.ALL
+    ) -> None:
+        super().__init__(config, split_type)
         best_graph = BestGraphIO(config)
         if not best_graph.exists():
             raise AssertionError("The best grpah should exists")
@@ -53,3 +57,33 @@ class ClitRecommenderDataSet(ClitResultDataset):
         best_graphs = BestGraphIO(self._config).load_dict()
         count = sum(map(len, best_graphs.values()))
         return int(count / self._config.batch_size) + 1
+
+
+class ClitRecommenderDynamicBatchDataSet(ClitResultDataset):
+    _lmdb: LmdbImmutableDict
+
+    def __init__(
+        self, config: Config, split_type: DatasetSplitType = DatasetSplitType.ALL
+    ) -> None:
+        super().__init__(config, split_type)
+        best_graph = BestGraphIO(config)
+        if not best_graph.exists():
+            raise AssertionError("The best grpah should exists")
+
+        assert config.batch_size is None or config.batch_size == 1
+
+        print("Warning Batch size is dynamic and depends on the amount of best graphs")
+
+        self._lmdb = best_graph.load_lmdb()
+
+    def __iter__(self) -> Iterator[List[DataRowWithBestGraph]]:
+        batch = []
+        for data_row_batch in super().__iter__():
+            for data_row in data_row_batch:
+                for best_graph in self._lmdb[data_row.context_uri]:
+                    best_graph_tuple: GraphPresentation = Tensor(best_graph)
+                    batch.append(
+                        DataRowWithBestGraph.from_data_row(data_row, best_graph_tuple)
+                    )
+            yield batch
+            batch = []

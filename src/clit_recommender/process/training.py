@@ -16,9 +16,10 @@ from transformers import get_linear_schedule_with_warmup
 from clit_recommender.data.best_graphs.factory import BestGraphFactory
 from clit_recommender.data.dataset.clit_recommender_data_set import (
     ClitRecommenderDataSet,
+    ClitRecommenderDynamicBatchDataSet,
 )
 from clit_recommender.data.embeddings_precompute import EmbeddingsPrecompute
-from clit_recommender.domain.datasets import Dataset
+from clit_recommender.domain.datasets import Dataset, DatasetSplitType
 from clit_recommender.domain.systems import System
 from clit_recommender.config import Config
 from clit_recommender.util import empty_cache
@@ -66,13 +67,15 @@ def cross_train(
         with open(os.path.join(path, "config_train.json"), "w") as f:
             f.write(config.to_json())
 
-    train = list(DataLoader(ClitRecommenderDataSet(config), batch_size=None))
+    train = list(
+        DataLoader(ClitRecommenderDynamicBatchDataSet(config), batch_size=None)
+    )
     random.shuffle(train)
     config.datasets = eval_sets
     if save:
         with open(os.path.join(path, "config_eval.json"), "w") as f:
             f.write(config.to_json())
-    eval = list(DataLoader(ClitRecommenderDataSet(config), batch_size=None))
+    eval = list(DataLoader(ClitRecommenderDynamicBatchDataSet(config), batch_size=None))
     random.shuffle(eval)
 
     _train(config, train, eval, path, save)
@@ -89,13 +92,14 @@ def train_full(config: Config, save: bool = True):
         with open(os.path.join(path, "config.json"), "w") as f:
             f.write(config.to_json())
 
-    data_loader = list(DataLoader(ClitRecommenderDataSet(config), batch_size=None))
-    random.seed(config.seed)
-    random.shuffle(data_loader)
-    eval_size = int(len(data_loader) * config.eval_factor)
+    train = list(
+        DataLoader(
+            ClitRecommenderDynamicBatchDataSet(config, DatasetSplitType.TRAIN),
+            batch_size=None,
+        )
+    )
 
-    eval = data_loader[:eval_size]
-    train = data_loader[eval_size:]
+    eval = ClitRecommenderDynamicBatchDataSet(config, DatasetSplitType.EVAL)
 
     _train(config, train, eval, path, save)
 
@@ -140,14 +144,16 @@ def _train(
         total_loss = 0.0
 
         for step, batch in tqdm(enumerate(train), total=len(train)):
-            with autocast(device_type=config.device):
-                output = processor.process_batch(batch[0])
-                loss = output.loss
+            for row in batch:
+                with autocast(device_type=config.device):
+                    output = processor.process_batch(row)
+                    loss += output.loss
 
-                if (
-                    gradient_accumulation_steps >= 1
-                ):  # https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation
-                    loss = loss / gradient_accumulation_steps
+            loss = loss / len(batch)
+            if (
+                gradient_accumulation_steps >= 1
+            ):  # https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation
+                loss = loss / gradient_accumulation_steps
 
             loss = loss.mean()
             total_loss += loss.item()
@@ -168,8 +174,8 @@ def _train(
 
         metrics_result = Metrics.zeros()
         metrics_prediction = Metrics.zeros()
-        for (i,) in tqdm(eval):
-            res = evaluator.process_data_row(i)
+        for batch in tqdm(eval):
+            res = evaluator.process_dynamic_batch(i)
             metrics_result += res[0]
             metrics_prediction += res[1]
 

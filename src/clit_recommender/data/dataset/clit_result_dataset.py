@@ -2,6 +2,7 @@ from clit_recommender.config import Config
 from clit_recommender.domain.data_row import DataRow
 from clit_recommender.data.graph_db_wrapper import ACTUAL_KEY, GraphDBWrapper
 from clit_recommender.domain.clit_result import Mention
+from clit_recommender.domain.datasets import DatasetSplitType
 from clit_recommender.domain.systems import System
 
 
@@ -16,10 +17,14 @@ class ClitResultDataset(IterableDataset):
     _config: Config
     _graph_db_wrapper: GraphDBWrapper
 
-    def __init__(self, config: Config) -> None:
+    def __init__(
+        self, config: Config, split_type: DatasetSplitType = DatasetSplitType.ALL
+    ) -> None:
         super().__init__()
 
-        self._graph_db_wrapper = GraphDBWrapper(config.datasets, config.systems)
+        self._graph_db_wrapper = GraphDBWrapper(
+            config.datasets, config.systems, split_type
+        )
         self._index_map = config.get_index_map()
         self._config = config
 

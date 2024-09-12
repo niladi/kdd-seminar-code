@@ -19,9 +19,9 @@ class MetricType(str, Enum):
 class Metrics:
 
     num_gold_spans: int = 0
-    tp: int = 0
-    fp: int = 0
-    fn: int = 0
+    tp: float = 0
+    fp: float = 0
+    fn: float = 0
     num_docs: int = 0
     example_errors: List[Any] = field(default_factory=list)
     example_errors_md: List[Any] = field(default_factory=list)

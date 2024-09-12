@@ -54,31 +54,31 @@ class BestGraphFactory(BestGraphIO):
 
     def get_best_graph(self, row: DataRow, graphs: Iterable[Graph]):
         best_results = []
-        current_metric: Metrics = Metrics.zeros()
-        current_size = 0
+        best_metric: Metrics = Metrics.zeros()
+        best_size = 0
         actual = set(row.actual)
         for graph in graphs:
             res = graph.forward(row)
             if res is None or len(res) == 0:
                 continue
 
-            metrics = Evaluation.evaluate_results(actual, set(res))
-            s = sum(map(sum, graph.to_matrix()))
+            current_metric = Evaluation.evaluate_results(actual, set(res))
+            current_size = sum(map(sum, graph.to_matrix()))
 
-            if metrics.get_metric(self.config.metric_type) == current_metric.get_metric(
+            if current_metric.get_metric(self.config.metric_type) == best_metric.get_metric(
                 self.config.metric_type
             ):
-                if s < current_size:
+                if current_size < best_size:
                     best_results = [graph]
-                    current_size = s
-                elif s == current_size:
+                    best_size = current_size
+                elif current_size == best_size:
                     best_results.append(graph)
-            elif metrics.get_metric(
+            elif current_metric.get_metric(
                 self.config.metric_type
-            ) > current_metric.get_metric(self.config.metric_type):
+            ) > best_metric.get_metric(self.config.metric_type):
                 best_results = [graph]
-                current_metric = metrics
-                current_size = s
+                best_metric = current_metric
+                best_size = current_size
         return best_results
 
     def process_batch(self, batch: List[DataRow], graphs: Iterable[Graph]):
