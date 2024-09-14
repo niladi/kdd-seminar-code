@@ -16,7 +16,8 @@ def display_with_layout(*widgets_list):
     display(*widgets_list)
 
 
-def enum_list_default(enum_type):  # pylint: disable=invalid-field-call
+# pylint: disable=invalid-field-call
+def enum_list_default(enum_type):
     return field(
         default_factory=list,
         metadata=config(

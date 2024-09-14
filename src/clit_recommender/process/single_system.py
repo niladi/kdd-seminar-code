@@ -19,17 +19,20 @@ class SingleSystem:
     _data: List[DataRow]
     _index_map: Dict[str, int]
     _save: bool
+    _result_dir: str
 
-    def __init__(self, datasets: List[Dataset], save: bool = True) -> None:
-        self._config = Config(depth=1, datasets=datasets)
+    def __init__(self, datasets: List[Dataset], result_dir=None) -> None:
+        self._config = Config(depth=1, datasets=datasets, results_dir=result_dir)
 
         self._data = ClitResultDataset(self._config, split_type=DatasetSplitType.EVAL)
         self._index_map = self._config.get_index_map()
 
-        self._save = save
+        self._save = result_dir is not None
 
     def run_all(self):
-        path = os.path.join(self._config.results_dir, "single_system", str(int(time())))
+        path = os.path.join(
+            self._config.results_dir, "single_system", "_".join(self._config.datasets)
+        )
         for system in self._index_map.keys():
             print("Starting System", system)
             self.run(system, path)

@@ -2,10 +2,13 @@ from dataclasses import dataclass, field
 from time import time
 from typing import Dict, List, Optional, Type
 from dataclasses_json import config, dataclass_json
+from os.path import join
+
 from clit_recommender.domain.datasets import Dataset
 from clit_recommender.domain.metrics import MetricType
 from clit_recommender.domain.systems import System
 from clit_recommender.util import enum_list_default
+from clit_recommender import DATA_PATH
 
 
 @dataclass_json
@@ -14,14 +17,13 @@ class Config:
     epochs: int = 2
     batch_size: int = 1
     depth: int = 1
-    results_dir: str = "/Users/niladi/workspace/seminar-kdd/code/data/results"
+    results_dir: str = join(DATA_PATH, "results")
     lm_model_name: str = "roberta-large"
     device: str = "cpu"
     experiment_name: str = None
     model: str = "ClitRecommenderModelOneDepth"
     load_best_graph: bool = True
-    threshold: int = 0.5
-
+    threshold: float = 0.5
     datasets: Optional[List[Dataset]] = enum_list_default(Dataset)
     systems: Optional[List[System]] = enum_list_default(System)
     metric_type: MetricType = MetricType.F1
