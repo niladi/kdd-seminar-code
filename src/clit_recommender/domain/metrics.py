@@ -10,7 +10,7 @@ from numpy import mean
 
 class MetricType(str, Enum):
     F1 = "F1"
-    PRECISSION = "PRECISSION"
+    PRECISION = "PRECISION"
     RECALL = "RECALL"
 
 
@@ -69,7 +69,7 @@ class Metrics:
     def get_metric(self, metric: MetricType):
         if metric == MetricType.F1:
             return self.get_f1()
-        elif metric == MetricType.PRECISSION:
+        elif metric == MetricType.PRECISION:
             return self.get_precision()
         elif metric == MetricType.RECALL:
             return self.get_recall()

@@ -70,6 +70,7 @@ class Evaluation:
                     else:
                         if predicted.levels[l.level].input[i_n].value >= threshold:
                             fp += 1
+                        # else TN compensated  for accuracy thorught num_system
             tp /= num
             fp /= num
             fn /= num
@@ -80,7 +81,7 @@ class Evaluation:
         tp_type = fp_type = fn_type = 0
         num_type = 3
         tp_system = fp_system = fn_system = 0
-        num_system = expected.intput_size
+        num_system = expected.input_size
 
         if expected_tuple is None:
             return Metrics.zeros()  # TDOD Fix? case 0000.. is best graph
@@ -120,6 +121,7 @@ class Evaluation:
             fn_system += sum(
                 1 for a, b in zip(last_predicted, last_exptected) if a == 0 and b == 1
             )
+            # else TN compensated  for accuracy thorught num_system
 
             fp += fp_system / num_system
             fn += fn_system / num_system

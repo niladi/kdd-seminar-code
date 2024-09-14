@@ -85,5 +85,8 @@ class ClitRecommenderDynamicBatchDataSet(ClitResultDataset):
                     batch.append(
                         DataRowWithBestGraph.from_data_row(data_row, best_graph_tuple)
                     )
-            yield batch
-            batch = []
+            if len(batch) == 0:
+                print("Skipping", data_row.context_uri)
+            else:
+                yield batch
+                batch = []

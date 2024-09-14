@@ -1,6 +1,13 @@
 from typing import Tuple, TypeAlias, Union
 
-from torch import Tensor
+from torch import Tensor, manual_seed
+
+from random import seed
+
+_seed = 500
+print("Set Manual Seed to", _seed)
+seed(_seed)
+manual_seed(_seed)
 
 
 DATA_PATH = "/Users/niladi/workspace/seminar-kdd/code/data"

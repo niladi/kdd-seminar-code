@@ -1,9 +1,11 @@
 from copy import deepcopy
+from multiprocessing import freeze_support
 from clit_recommender import DATA_PATH
 from clit_recommender.config import Config
 
 from time import time
-from os.path import join
+from os.path import join, exists
+from os import rmdir
 
 from clit_recommender.domain.systems import System
 from clit_recommender.process.single_system import SingleSystem
@@ -18,8 +20,8 @@ def run_all_experiments(config: Config):
     print("########### Start Single System #############")
 
     for data in tqdm(config.datasets):
-        SingleSystem([data], config.results_dir)
-    SingleSystem(config.datasets, config.results_dir)
+        SingleSystem([data], config.results_dir).run_all()
+    SingleSystem(config.datasets, config.results_dir).run_all()
 
     print("########### Single System Done #############")
 
@@ -27,6 +29,7 @@ def run_all_experiments(config: Config):
 
     for data in tqdm(config.datasets):
         cfg = deepcopy(config)
+        cfg.experiment_name += "_" + data.label
         cfg.datasets = [data]
         train_full(cfg, True)
 
@@ -37,13 +40,16 @@ def run_all_experiments(config: Config):
     print("########### Start Cross Train #############")
 
     for idx, data in enumerate(tqdm(config.datasets)):
-        training_sets = config.datasets[:idx] + config.datasets[idx + 1 :]
-        cross_train(config, training_sets, [data], True)
+        cfg = deepcopy(config)
+        cfg.experiment_name += "_" + data.label
+        training_sets = cfg.datasets[:idx] + cfg.datasets[idx + 1 :]
+        cross_train(cfg, training_sets, [data], True)
 
     print("########### Cross Train Done #############")
 
 
 if __name__ == "__main__":
+    freeze_support()
     _config = Config()
     _config.systems = [
         System.BABEFLY,
@@ -55,5 +61,7 @@ if __name__ == "__main__":
         System.TAGME,
         System.TEXT_RAZOR,
     ]
-    _config.results_dir = join(DATA_PATH, "results_full" + str(int(time())))
+    _config.results_dir = join(DATA_PATH, "results_full")
+    if exists(_config.results_dir):
+        rmdir(_config.results_dir)
     run_all_experiments(_config)

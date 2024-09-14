@@ -61,7 +61,6 @@ def cross_train(
     )
     if save:
         os.makedirs(path)
-    random.seed(config.seed)
     config.datasets = training_sets
     if save:
         with open(os.path.join(path, "config_train.json"), "w") as f:
@@ -98,6 +97,7 @@ def train_full(config: Config, save: bool = True):
             batch_size=None,
         )
     )
+    random.shuffle(train)
 
     eval = ClitRecommenderDynamicBatchDataSet(config, DatasetSplitType.EVAL)
 
@@ -144,12 +144,16 @@ def _train(
         total_loss = 0.0
 
         for step, batch in tqdm(enumerate(train), total=len(train)):
-            for row in batch:
-                with autocast(device_type=config.device):
-                    output = processor.process_batch(row)
-                    loss += output.loss
 
-            loss = loss / len(batch)
+            with autocast(device_type=config.device):
+                for idx, row in enumerate(batch):
+                    output = processor.process_batch(row)
+                    if idx == 0:
+                        loss = output.loss
+                    else:
+                        loss += output.loss
+
+                loss = loss / len(batch)
             if (
                 gradient_accumulation_steps >= 1
             ):  # https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation
@@ -175,7 +179,7 @@ def _train(
         metrics_result = Metrics.zeros()
         metrics_prediction = Metrics.zeros()
         for batch in tqdm(eval):
-            res = evaluator.process_dynamic_batch(i)
+            res = evaluator.process_dynamic_batch(batch)
             metrics_result += res[0]
             metrics_prediction += res[1]
 
@@ -219,7 +223,7 @@ def _train(
                         )
                     ).get_summary()
                 )
-        return next(iter(metrics_holder.get_best_epoch().result_metrics.values()))
+    return next(iter(metrics_holder.get_best_epoch().result_metrics.values()))
 
 
 if __name__ == "__main__":

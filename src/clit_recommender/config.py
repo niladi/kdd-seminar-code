@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Type
 from dataclasses_json import config, dataclass_json
 from os.path import join
 
+
 from clit_recommender.domain.datasets import Dataset
 from clit_recommender.domain.metrics import MetricType
 from clit_recommender.domain.systems import System
@@ -14,7 +15,7 @@ from clit_recommender import DATA_PATH
 @dataclass_json
 @dataclass
 class Config:
-    epochs: int = 2
+    epochs: int = 5
     batch_size: int = 1
     depth: int = 1
     results_dir: str = join(DATA_PATH, "results")
@@ -31,9 +32,7 @@ class Config:
 
     def __post_init__(self):
         if self.experiment_name is None:
-            self.experiment_name = (
-                f"Clit-Recommender-Experiment-{int(time())}-{self.metric_type}"
-            )
+            self.experiment_name = f"Clit-Recommender-Experiment-{int(time())}-{self.metric_type.name.lower()}"
 
         if self.datasets is None or len(self.datasets) == 0:
             self.datasets = list(Dataset)

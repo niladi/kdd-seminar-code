@@ -28,18 +28,18 @@ class System(SystemEntry, Enum):
     )
     REFINED_MD_PROPERTIES = (
         5,
-        "Refined MD (.properties)",
+        "Refined MD",
         "http://aifb.kit.edu/clit/recommender/Refined%20MD%20%28.properties%29",
     )
     REL = (6, "REL", "http://aifb.kit.edu/clit/recommender/REL")
     REL_MD_PROPERTIES = (
         7,
-        "REL MD (.properties)",
+        "REL MD",
         "http://aifb.kit.edu/clit/recommender/REL%20MD%20%28.properties%29",
     )
     SPACY_MD_PROPERTIES = (
         8,
-        "Spacy MD (.properties)",
+        "Spacy MD",
         "http://aifb.kit.edu/clit/recommender/Spacy%20MD%20%28.properties%29",
     )
     TAGME = (9, "TagMe", "http://aifb.kit.edu/clit/recommender/TagMe")
