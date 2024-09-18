@@ -1,7 +1,7 @@
 import itertools
 from functools import lru_cache
 from multiprocessing import freeze_support
-from os import mkdir
+from os import makedirs
 from os.path import exists
 from typing import Iterable, List
 
@@ -19,7 +19,7 @@ from clit_recommender.data.dataset.clit_result_dataset import ClitResultDataset
 from clit_recommender.domain.data_row import DataRow
 from clit_recommender.data.graph_db_wrapper import GraphDBWrapper
 from clit_recommender.domain.datasets import Dataset
-from clit_recommender.domain.metrics import Metrics
+from clit_recommender.domain.metrics import MetricType, Metrics
 from clit_recommender.domain.systems import System
 from clit_recommender.domain.clit_mock.graph import (
     Graph,
@@ -65,9 +65,9 @@ class BestGraphFactory(BestGraphIO):
             current_metric = Evaluation.evaluate_results(actual, set(res))
             current_size = sum(map(sum, graph.to_matrix()))
 
-            if current_metric.get_metric(self.config.metric_type) == best_metric.get_metric(
+            if current_metric.get_metric(
                 self.config.metric_type
-            ):
+            ) == best_metric.get_metric(self.config.metric_type):
                 if current_size < best_size:
                     best_results = [graph]
                     best_size = current_size
@@ -97,7 +97,7 @@ class BestGraphFactory(BestGraphIO):
     def create(self, load_checkpoint=True, error_on_existing=False):
         best_graph = {}
         if not exists(self.path):
-            mkdir(self.path)
+            makedirs(self.path)
         elif load_checkpoint and self.exists():
             best_graph = self.load_dict()
 
@@ -165,3 +165,9 @@ class BestGraphFactory(BestGraphIO):
                     best_graph[_key] = _value
 
         self.save(best_graph)
+
+
+if __name__ == "__main__":
+    freeze_support()
+    for metrics_type in list(MetricType):
+        BestGraphFactory(Config(metric_type=metrics_type)).create()

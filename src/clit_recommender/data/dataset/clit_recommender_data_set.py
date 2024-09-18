@@ -17,7 +17,7 @@ from clit_recommender.domain.data_row import DataRow, DataRowWithBestGraph
 
 from dataclasses import dataclass
 
-from clit_recommender.domain.datasets import DatasetSplitType
+from clit_recommender.domain.datasets import Dataset, DatasetSplitType
 
 
 class ClitRecommenderDataSet(ClitResultDataset):
@@ -90,3 +90,11 @@ class ClitRecommenderDynamicBatchDataSet(ClitResultDataset):
             else:
                 yield batch
                 batch = []
+
+
+if __name__ == "__main__":
+    list(
+        ClitRecommenderDynamicBatchDataSet(
+            Config(datasets=[Dataset.RSS_500, Dataset.REUTERS_128])
+        )
+    )

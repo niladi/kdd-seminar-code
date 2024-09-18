@@ -8,7 +8,13 @@ from pynif import NIFCollection, NIFContext
 from rdflib import RDF, Graph, Literal, Namespace, URIRef
 from tqdm.auto import tqdm
 
-from clit_recommender import CLIT_RESULTS_PATH, DATA_PATH, DATASETS_PATH, MD_ONLY
+from clit_recommender import (
+    CLIT_RESULTS_PATH,
+    DATA_PATH,
+    DATASETS_PATH,
+    MD_ONLY,
+    MEDMENTION_PATH,
+)
 from clit_recommender.domain.clit_result import (
     ClitResult,
     Document,
@@ -302,13 +308,17 @@ class NifClitResultFactory(NifFactory):
 if __name__ == "__main__":
 
     # Clit Results All Casual Domain
-    # NifClitResultFactory([DatasetEnum.AIDA_YAGO2, DatasetEnum.KORE_50, DatasetEnum.NEWS_100, DatasetEnum.REUTERS_128, DatasetEnum.RSS_500], False, MD_ONLY)()
+    NifClitResultFactory(
+        [
+            Dataset.AIDA_YAGO2,
+            Dataset.KORE_50,
+            Dataset.NEWS_100,
+            Dataset.REUTERS_128,
+            Dataset.RSS_500,
+        ],
+        False,
+        MD_ONLY,
+    )()
 
     # Clit Results Med Mentions Domain
-    # NifClitResultFactory([DatasetEnum.MED_MENTIONS], False, MEDMENTION_PATH)()
-
-    # Collection URL Casual Domain
-    NifAddCollectionUriFactory(
-        [Dataset.AIDA_YAGO2, Dataset.KORE_50],
-        True,
-    )()
+    NifClitResultFactory([Dataset.MED_MENTIONS], False, MEDMENTION_PATH)()

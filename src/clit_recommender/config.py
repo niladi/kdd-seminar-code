@@ -38,7 +38,16 @@ class Config:
             self.datasets = list(Dataset)
 
         if self.systems is None or len(self.systems) == 0:
-            self.systems = list(System)
+            self.systems = [
+                System.BABEFLY,
+                System.DBPEDIA_SPOTLIGHT,
+                System.OPEN_TAPIOCA,
+                System.REFINED_MD_PROPERTIES,
+                System.REL_MD_PROPERTIES,
+                System.SPACY_MD_PROPERTIES,
+                System.TAGME,
+                System.TEXT_RAZOR,
+            ]
 
     def calculate_output_size(self) -> int:
         i = self.md_modules_count

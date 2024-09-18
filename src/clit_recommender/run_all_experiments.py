@@ -63,5 +63,5 @@ if __name__ == "__main__":
     ]
     _config.results_dir = join(DATA_PATH, "results_full")
     if exists(_config.results_dir):
-        rmdir(_config.results_dir)
+        rmdir(_config.results_dir) + str(int(time())
     run_all_experiments(_config)

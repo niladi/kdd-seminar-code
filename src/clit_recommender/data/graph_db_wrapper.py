@@ -1,5 +1,3 @@
-# %%
-
 from collections import defaultdict
 from typing import Dict, List, Tuple
 from SPARQLWrapper import JSON, SPARQLWrapper
@@ -125,4 +123,7 @@ if __name__ == "__main__":
     # print(g.get_contexts())
     # print(g.get_mentions_of_context("http://med-mentions.niladi.de/all#char=0,100"))
 
-# %%
+
+if __name__ == "__main__":
+    wrapper = GraphDBWrapper([])
+    print(wrapper.get_all_systems())
