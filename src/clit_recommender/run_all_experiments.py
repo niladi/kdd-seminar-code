@@ -33,7 +33,7 @@ def run_all_experiments(config: Config):
         cfg.datasets = [data]
         train_full(cfg, True)
 
-    train_full(config, True)
+    train_full(config, True,True)
 
     print("########### Train Full Done #############")
 

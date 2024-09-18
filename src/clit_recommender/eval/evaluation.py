@@ -15,7 +15,7 @@ class Evaluation:
 
     def process_dynamic_batch(
         self, batch: Iterable[DataRow]
-    ) -> Tuple[Metrics, Metrics]:
+    ) -> Tuple[Metrics, Metrics, Graph]:
         data_row = batch[0]
         gold = set(data_row.actual)
         result = self.processor.process_batch(data_row)
@@ -36,7 +36,7 @@ class Evaluation:
             if current.get_f1() > best_matrices.get_f1():  # TODO Besprechung
                 best_matrices = current
 
-        return results, best_matrices
+        return results, best_matrices, g
 
     def process_data_row(self, data_row: DataRow) -> Tuple[Metrics, Metrics]:
         gold = set(data_row.actual)

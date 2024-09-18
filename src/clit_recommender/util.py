@@ -6,11 +6,27 @@ from ipywidgets.widgets import Layout
 from IPython.display import display
 from os.path import exists, join
 from os import mkdir
+import numpy as np
 import pandas as pd
 
 
 from dataclasses_json import config
 import torch
+
+
+def l1_normalize_tuple(values):
+    """L1 normalizes a tuple of values.
+
+    Args:
+        values: A tuple of numerical values.
+
+    Returns:
+        A tuple of L1 normalized values.
+    """
+
+    values_array = np.array(values)
+    sum_abs = np.sum(np.abs(values_array))
+    return values_array / sum_abs
 
 
 def display_with_layout(*widgets_list):

@@ -22,10 +22,12 @@ from clit_recommender.data.embeddings_precompute import EmbeddingsPrecompute
 from clit_recommender.domain.datasets import Dataset, DatasetSplitType
 from clit_recommender.domain.systems import System
 from clit_recommender.config import Config
+from clit_recommender.eval.exporter import Exporter
+from clit_recommender.eval.heatmap import create_systems_x2_used
 from clit_recommender.util import empty_cache
 from clit_recommender.domain.data_row import DataRow
 from clit_recommender.domain.metrics import Metrics, MetricsHolder
-from clit_recommender.process.evaluation import Evaluation
+from clit_recommender.eval.evaluation import Evaluation
 from clit_recommender.process.inference import ClitRecommeder
 
 
@@ -80,7 +82,7 @@ def cross_train(
     _train(config, train, eval, path, save)
 
 
-def train_full(config: Config, save: bool = True):
+def train_full(config: Config, save: bool = True, heatmap: bool = False):
     _offline_data(config)
 
     path = os.path.join(config.results_dir, "experiments", config.experiment_name)
@@ -101,7 +103,7 @@ def train_full(config: Config, save: bool = True):
 
     eval = ClitRecommenderDynamicBatchDataSet(config, DatasetSplitType.EVAL)
 
-    _train(config, train, eval, path, save)
+    _train(config, train, eval, path, save, heatmap)
 
 
 def _train(
@@ -110,6 +112,7 @@ def _train(
     eval: List[List[DataRow]],
     path: str,
     save: bool = True,
+    heatmap: bool = False,
 ):
 
     processor = ClitRecommeder(config)
@@ -178,10 +181,16 @@ def _train(
 
         metrics_result = Metrics.zeros()
         metrics_prediction = Metrics.zeros()
+
+        systems = []
+
         for batch in tqdm(eval):
             res = evaluator.process_dynamic_batch(batch)
             metrics_result += res[0]
             metrics_prediction += res[1]
+            s = res[2].get_last_level_tuple_roundet()
+            if s is not None and len(s) > 0:
+                systems.append(s[0])
 
         metrics_holder.set_result_metrics_to_last_epoch(metrics_result)
         metrics_holder.set_prediction_metrics_to_last_epoch(metrics_prediction)
@@ -200,9 +209,15 @@ def _train(
                 )
             )
         )
+
         if metrics_result.get_metric(config.metric_type) > metric:
             print("New Model is Best")
             metrics_holder.set_last_epoch_as_best()
+
+            if heatmap:
+                create_systems_x2_used(
+                    systems, config.metric_type, Exporter(path), True
+                )
 
         if save:
             with open(os.path.join(path, "metrics.json"), "w") as f:
@@ -242,5 +257,7 @@ if __name__ == "__main__":
                 System.TAGME,
                 System.TEXT_RAZOR,
             ],
-        )
+        ),
+        True,
+        True,
     )

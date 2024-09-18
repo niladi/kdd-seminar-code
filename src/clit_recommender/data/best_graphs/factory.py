@@ -29,7 +29,7 @@ from clit_recommender.domain.clit_mock.combined_node import (
     MajorityVoting,
     UnionNode,
 )
-from clit_recommender.process.evaluation import Evaluation
+from clit_recommender.eval.evaluation import Evaluation
 
 
 class BestGraphFactory(BestGraphIO):

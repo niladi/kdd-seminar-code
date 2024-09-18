@@ -13,7 +13,7 @@ from clit_recommender.domain.data_row import DataRow
 from clit_recommender.domain.clit_mock.graph import Graph
 from clit_recommender.domain.metrics import Metrics
 from clit_recommender.domain.systems import System
-from clit_recommender.process.evaluation import Evaluation
+from clit_recommender.eval.evaluation import Evaluation
 
 
 class SingleSystem:
