@@ -1,6 +1,8 @@
+from collections import defaultdict
 from multiprocessing import freeze_support
+import operator
 import os
-from typing import List
+from typing import List, Tuple, Type
 
 
 from numpy import mean
@@ -19,11 +21,18 @@ from clit_recommender.data.dataset.clit_recommender_data_set import (
     ClitRecommenderDynamicBatchDataSet,
 )
 from clit_recommender.data.embeddings_precompute import EmbeddingsPrecompute
+from clit_recommender.domain.clit_mock.combined_node import (
+    CombinedNode,
+    IntersectionNode,
+    MajorityVoting,
+    UnionNode,
+)
 from clit_recommender.domain.datasets import Dataset, DatasetSplitType
 from clit_recommender.domain.systems import System
 from clit_recommender.config import Config
 from clit_recommender.eval.exporter import Exporter
 from clit_recommender.eval.heatmap import create_systems_x2_used
+from clit_recommender.eval.plot import create_amount_of_systems_plot
 from clit_recommender.util import empty_cache
 from clit_recommender.domain.data_row import DataRow
 from clit_recommender.domain.metrics import Metrics, MetricsHolder
@@ -82,7 +91,7 @@ def cross_train(
     _train(config, train, eval, path, save)
 
 
-def train_full(config: Config, save: bool = True, heatmap: bool = False):
+def train_full(config: Config, save: bool = True, plots: bool = False):
     _offline_data(config)
 
     path = os.path.join(config.results_dir, "experiments", config.experiment_name)
@@ -103,7 +112,7 @@ def train_full(config: Config, save: bool = True, heatmap: bool = False):
 
     eval = ClitRecommenderDynamicBatchDataSet(config, DatasetSplitType.EVAL)
 
-    _train(config, train, eval, path, save, heatmap)
+    _train(config, train, eval, path, save, plots)
 
 
 def _train(
@@ -112,7 +121,7 @@ def _train(
     eval: List[List[DataRow]],
     path: str,
     save: bool = True,
-    heatmap: bool = False,
+    plots: bool = False,
 ):
 
     processor = ClitRecommeder(config)
@@ -182,15 +191,13 @@ def _train(
         metrics_result = Metrics.zeros()
         metrics_prediction = Metrics.zeros()
 
-        systems = []
+        graphs = []
 
         for batch in tqdm(eval):
             res = evaluator.process_dynamic_batch(batch)
             metrics_result += res[0]
             metrics_prediction += res[1]
-            s = res[2].get_last_level_tuple_roundet()
-            if s is not None and len(s) > 0:
-                systems.append(s[0])
+            graphs.append(res[2])
 
         metrics_holder.set_result_metrics_to_last_epoch(metrics_result)
         metrics_holder.set_prediction_metrics_to_last_epoch(metrics_prediction)
@@ -210,13 +217,36 @@ def _train(
             )
         )
 
-        if metrics_result.get_metric(config.metric_type) > metric:
+        if metrics_prediction.get_metric(config.metric_type) > metric:
             print("New Model is Best")
             metrics_holder.set_last_epoch_as_best()
 
-            if heatmap:
-                create_systems_x2_used(
-                    systems, config.metric_type, Exporter(path), True
+            if plots:
+                last_roundet: Tuple[Tuple[float, ...], Type[CombinedNode]] = list(
+                    filter(
+                        lambda s: s is not None and len(s) > 0,
+                        map(lambda x: x.get_last_level_tuple_roundet(), graphs),
+                    )
+                )
+                systems = []
+                amount = defaultdict(lambda: defaultdict(int))
+                exporter = Exporter(path)
+                for sys, combination_type in last_roundet:
+                    systems.append(sys)
+                    for sys, combination_type in last_roundet:
+                        systems.append(sys)
+
+                        key = {
+                            UnionNode: "Union",
+                            IntersectionNode: "Intersection",
+                            MajorityVoting: "Mojority Voting",
+                        }.get(combination_type)
+                        amount[int(sum(sys))][key] += 1
+
+                create_systems_x2_used(systems, config.metric_type, exporter, True)
+
+                create_amount_of_systems_plot(
+                    amount, config.metric_type, exporter, True
                 )
 
         if save:
@@ -238,6 +268,11 @@ def _train(
                         )
                     ).get_summary()
                 )
+        if metrics_holder.best_epoch_index - i > 2:
+            print()
+            print("No Improvement in 2 epochs. Stopping training.")
+            print("Best Epoch: ", metrics_holder.best_epoch_index)
+            break
     return next(iter(metrics_holder.get_best_epoch().result_metrics.values()))
 
 
@@ -257,6 +292,7 @@ if __name__ == "__main__":
                 System.TAGME,
                 System.TEXT_RAZOR,
             ],
+            epochs=20,
         ),
         True,
         True,

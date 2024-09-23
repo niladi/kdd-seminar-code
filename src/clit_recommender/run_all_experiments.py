@@ -10,6 +10,7 @@ from os import rmdir
 from clit_recommender.domain.systems import System
 from clit_recommender.process.single_system import SingleSystem
 from clit_recommender.process.training import train_full, cross_train
+from clit_recommender.domain.metrics import MetricType
 
 
 from tqdm.auto import tqdm
@@ -33,7 +34,7 @@ def run_all_experiments(config: Config):
         cfg.datasets = [data]
         train_full(cfg, True)
 
-    train_full(config, True,True)
+    train_full(config, True, True)
 
     print("########### Train Full Done #############")
 
@@ -50,7 +51,7 @@ def run_all_experiments(config: Config):
 
 if __name__ == "__main__":
     freeze_support()
-    _config = Config()
+    _config = Config(epochs=20)
     _config.systems = [
         System.BABEFLY,
         System.DBPEDIA_SPOTLIGHT,
@@ -61,7 +62,11 @@ if __name__ == "__main__":
         System.TAGME,
         System.TEXT_RAZOR,
     ]
-    _config.results_dir = join(DATA_PATH, "results_full")
-    if exists(_config.results_dir):
-        rmdir(_config.results_dir) + str(int(time())
-    run_all_experiments(_config)
+
+    for metric_type in list(MetricType):
+        cfg = deepcopy(_config)
+        cfg.results_dir = join(DATA_PATH, "results_full", metric_type.value.lower())
+        if exists(cfg.results_dir):
+            rmdir(cfg.results_dir)
+        cfg.metric_type = metric_type
+        run_all_experiments(cfg)

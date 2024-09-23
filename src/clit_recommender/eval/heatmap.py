@@ -39,10 +39,19 @@ def create_systems_x2_used(
     df = df.loc[(df != 0).any(axis=1), :]
 
     # Rescale the numbers by dividing by 1000
-    df = df / 1000
+    df = df / len(systems)
+
+    mask = np.triu(np.ones_like(df, dtype=bool))
 
     ax = sns.heatmap(
-        df, linewidth=0.5, cmap=custom_cmap, annot=True, fmt=".2f", cbar=True
+        df,
+        linewidth=0.5,
+        cmap=custom_cmap,
+        annot=True,
+        fmt=".2f",
+        cbar=True,
+        mask=mask,
+        square=True,
     )
 
     ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
@@ -51,7 +60,7 @@ def create_systems_x2_used(
     # Add labels and title to the plot
     plt.xlabel("System")
     plt.ylabel("System")
-    plt.title("Heatmap of System to System " + metric_type.value.lower() + " (in 1000)")
+    plt.title("Heatmap of System to System " + metric_type.value.lower() + " in %")
 
     if exporter:
         exporter.plt_to_png(f"heatmap_of_sys_sys_{metric_type.value.lower()}")

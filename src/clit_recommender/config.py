@@ -15,7 +15,7 @@ from clit_recommender import DATA_PATH
 @dataclass_json
 @dataclass
 class Config:
-    epochs: int = 5
+    epochs: int = 20
     batch_size: int = 1
     depth: int = 1
     results_dir: str = join(DATA_PATH, "results")
