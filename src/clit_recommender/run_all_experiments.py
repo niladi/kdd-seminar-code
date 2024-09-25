@@ -20,21 +20,20 @@ def run_all_experiments(config: Config):
 
     print("########### Start Single System #############")
 
+    SingleSystem(config.datasets, config.results_dir).run_all()
     for data in tqdm(config.datasets):
         SingleSystem([data], config.results_dir).run_all()
-    SingleSystem(config.datasets, config.results_dir).run_all()
 
     print("########### Single System Done #############")
 
     print("########### Start Train Full #############")
+    train_full(config, True, True)
 
     for data in tqdm(config.datasets):
         cfg = deepcopy(config)
         cfg.experiment_name += "_" + data.label
         cfg.datasets = [data]
         train_full(cfg, True)
-
-    train_full(config, True, True)
 
     print("########### Train Full Done #############")
 
@@ -55,7 +54,6 @@ if __name__ == "__main__":
     _config.systems = [
         System.BABEFLY,
         System.DBPEDIA_SPOTLIGHT,
-        System.OPEN_TAPIOCA,
         System.REFINED_MD_PROPERTIES,
         System.REL_MD_PROPERTIES,
         System.SPACY_MD_PROPERTIES,
@@ -64,9 +62,9 @@ if __name__ == "__main__":
     ]
 
     for metric_type in list(MetricType):
-        cfg = deepcopy(_config)
-        cfg.results_dir = join(DATA_PATH, "results_full", metric_type.value.lower())
-        if exists(cfg.results_dir):
-            rmdir(cfg.results_dir)
-        cfg.metric_type = metric_type
-        run_all_experiments(cfg)
+        _cfg = deepcopy(_config)
+        _cfg.results_dir = join(DATA_PATH, "results_full", metric_type.value.lower())
+        if exists(_cfg.results_dir):
+            rmdir(_cfg.results_dir)
+        _cfg.metric_type = metric_type
+        run_all_experiments(_cfg)

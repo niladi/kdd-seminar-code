@@ -233,15 +233,12 @@ def _train(
                 exporter = Exporter(path)
                 for sys, combination_type in last_roundet:
                     systems.append(sys)
-                    for sys, combination_type in last_roundet:
-                        systems.append(sys)
-
-                        key = {
-                            UnionNode: "Union",
-                            IntersectionNode: "Intersection",
-                            MajorityVoting: "Mojority Voting",
-                        }.get(combination_type)
-                        amount[int(sum(sys))][key] += 1
+                    key = {
+                        UnionNode: "Union",
+                        IntersectionNode: "Intersection",
+                        MajorityVoting: "Majority Voting",
+                    }.get(combination_type)
+                    amount[int(sum(sys))][key] += 1
 
                 create_systems_x2_used(systems, config.metric_type, exporter, True)
 

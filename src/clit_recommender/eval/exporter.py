@@ -9,20 +9,27 @@ class Exporter:
         self.path = path
 
     def to_latex(self, df: pd.DataFrame, name: str) -> None:
-        df = df.round(2)
+        df_round = df.round(2)
         path = join(self.path, "latex_eval_tables")
 
         if not exists(path):
             mkdir(path)
 
         with open(join(path, name), "w") as f:
-            f.write("\\begin{tabular}{r|" + "".join(["c"] * len(df.columns)) + "}\n")
+            f.write(
+                "\\begin{tabular}{r|" + "".join(["c"] * len(df_round.columns)) + "}\n"
+            )
             f.write("\\hline\n")
-            f.write(" & ".join([f"\\rot{{{str(x)}}}" for x in df.columns]) + " \\\\\n")
+            f.write(
+                " & "
+                + " & ".join([f"\\rot{{{x}}}" for x in df_round.columns])
+                + " \\\\\n"
+            )
             f.write("\\hline\n")
-            for i, row in df.iterrows():
+            for i, row in df_round.iterrows():
+                s = i if type(i) == str else ""
                 f.write(
-                    i + " & " + " & ".join([str(x) for x in row.values]) + " \\\\\n"
+                    s + " & " + " & ".join([str(x) for x in row.values]) + " \\\\\n"
                 )
             f.write("\\hline\n")
             f.write("\\end{tabular}")

@@ -38,7 +38,7 @@ def create_amount_of_systems_plot(
 ):
 
     # Extract the keys and values from the 'amount' dictionary
-    keys = list(amount.keys())
+    keys = list(map(int, amount.keys()))
     values = list(amount.values())
     labels = get_labels(amount)
     colors = get_colors()
@@ -47,17 +47,16 @@ def create_amount_of_systems_plot(
     bottom = [0] * len(keys)
 
     # Plot the stacked bars
-    for i in range(len(labels)):
+    for i, label in enumerate(labels):
         plt.bar(
             keys,
-            [v.get(labels[i], 0) for v in values],
+            [v.get(label, 0) for v in values],
             bottom=bottom,
-            label=labels[i],
+            label=label,
             color=colors[i],
         )
         bottom = [
-            bottom[j] + [v.get(labels[i], 0) for v in values][j]
-            for j in range(len(keys))
+            bottom[j] + [v.get(label, 0) for v in values][j] for j in range(len(keys))
         ]
 
     # Add labels and title to the plot
