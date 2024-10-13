@@ -67,4 +67,5 @@ if __name__ == "__main__":
         if exists(_cfg.results_dir):
             rmdir(_cfg.results_dir)
         _cfg.metric_type = metric_type
+        _cfg.experiment_name = _cfg.create_name()
         run_all_experiments(_cfg)

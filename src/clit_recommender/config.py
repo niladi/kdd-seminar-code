@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from time import time
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Literal, Optional, Type
 from dataclasses_json import config, dataclass_json
 from os.path import join
 
@@ -29,10 +29,13 @@ class Config:
     systems: Optional[List[System]] = enum_list_default(System)
     metric_type: MetricType = MetricType.F1
     md_modules_count: int = len(list(System))
+    best_model_eval_type: Literal["result", "prediction"] = "prediction"
+    model_depth: int = 1
+    model_hidden_layer_size: int = 512
 
     def __post_init__(self):
         if self.experiment_name is None:
-            self.experiment_name = f"Clit-Recommender-Experiment-{int(time())}-{self.metric_type.name.lower()}"
+            self.experiment_name = self.create_name()
 
         if self.datasets is None or len(self.datasets) == 0:
             self.datasets = list(Dataset)
@@ -48,6 +51,11 @@ class Config:
                 System.TAGME,
                 System.TEXT_RAZOR,
             ]
+
+    def create_name(self) -> str:
+        return (
+            f"Clit-Recommender-Experiment-{int(time())}-{self.metric_type.name.lower()}"
+        )
 
     def calculate_output_size(self) -> int:
         i = self.md_modules_count

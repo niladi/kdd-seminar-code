@@ -11,14 +11,22 @@ from clit_recommender.domain.clit_mock.graph import Graph
 class ClitRecommenderModelOneDepth(ClitRecommenderModel):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self._hidden_layer = nn.Linear(
-            self._embedding_size, self._embedding_size, device=config.device
-        )
-        self._classification_layer = nn.Linear(
-            self._embedding_size, 3, device=config.device
-        )
+        layers = []
+        h_size = config.model_hidden_layer_size
+        for i in range(config.model_depth):
+            if i == 0:
+                i_size = self._embedding_size
+            else:
+                i_size = h_size
+
+            layers.append(nn.Linear(i_size, h_size, device=config.device))
+            layers.append(nn.LeakyReLU(negative_slope=0.01))
+
+        self._hidden_layer = nn.Sequential(*layers)
+
+        self._classification_layer = nn.Linear(h_size, 3, device=config.device)
         self._multi_label_layer = nn.Linear(
-            self._embedding_size, config.md_modules_count, device=config.device
+            h_size, config.md_modules_count, device=config.device
         )
 
     def forward(self, embeddings: Tensor, data_row: DataRowWithBestGraph):
@@ -27,6 +35,7 @@ class ClitRecommenderModelOneDepth(ClitRecommenderModel):
         classification_output: Tensor = self._classification_layer(hidden_output)
 
         multi_label_output = self._multi_label_layer(hidden_output)
+        total_loss = None
 
         if data_row is not None:
             values, g_type = Graph.create(

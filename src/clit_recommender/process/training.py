@@ -2,13 +2,24 @@ from collections import defaultdict
 from multiprocessing import freeze_support
 import operator
 import os
-from typing import List, Tuple, Type
+from pathlib import Path
+from typing import Dict, List, Tuple, Type
+from functools import partial
+import itertools
 
 
 from numpy import mean
 import torch
 import random
 
+import ray
+from ray import tune
+
+from ray.train import Checkpoint, get_checkpoint
+from ray.tune.schedulers import ASHAScheduler
+import ray.cloudpickle as pickle
+
+import tempfile
 from torch import GradScaler, autocast
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
@@ -35,7 +46,7 @@ from clit_recommender.eval.heatmap import create_systems_x2_used
 from clit_recommender.eval.plot import create_amount_of_systems_plot
 from clit_recommender.util import empty_cache
 from clit_recommender.domain.data_row import DataRow
-from clit_recommender.domain.metrics import Metrics, MetricsHolder
+from clit_recommender.domain.metrics import MetricType, Metrics, MetricsHolder
 from clit_recommender.eval.evaluation import Evaluation
 from clit_recommender.process.inference import ClitRecommeder
 
@@ -80,13 +91,13 @@ def cross_train(
     train = list(
         DataLoader(ClitRecommenderDynamicBatchDataSet(config), batch_size=None)
     )
-    random.shuffle(train)
+    # random.shuffle(train)
     config.datasets = eval_sets
     if save:
         with open(os.path.join(path, "config_eval.json"), "w") as f:
             f.write(config.to_json())
     eval = list(DataLoader(ClitRecommenderDynamicBatchDataSet(config), batch_size=None))
-    random.shuffle(eval)
+    # random.shuffle(eval)
 
     _train(config, train, eval, path, save)
 
@@ -108,7 +119,7 @@ def train_full(config: Config, save: bool = True, plots: bool = False):
             batch_size=None,
         )
     )
-    random.shuffle(train)
+    # random.shuffle(train)
 
     eval = ClitRecommenderDynamicBatchDataSet(config, DatasetSplitType.EVAL)
 
@@ -148,7 +159,19 @@ def _train(
 
     scaler = GradScaler(device=config.device)
 
-    for i in trange(config.epochs):
+    checkpoint = get_checkpoint()
+    if checkpoint:
+        with checkpoint.as_directory() as checkpoint_dir:
+            data_path = Path(checkpoint_dir) / "data.pkl"
+            with open(data_path, "rb") as fp:
+                checkpoint_state = pickle.load(fp)
+            start_epoch = checkpoint_state["epoch"]
+            model.load_state_dict(checkpoint_state["net_state_dict"])
+            optimizer.load_state_dict(checkpoint_state["optimizer_state_dict"])
+    else:
+        start_epoch = 0
+
+    for i in trange(start_epoch, config.epochs):
         metrics_holder.add_epoch()
         empty_cache(config.device)
         optimizer.zero_grad()
@@ -174,11 +197,12 @@ def _train(
             loss = loss.mean()
             total_loss += loss.item()
             scaler.scale(loss).backward()
+            normalized_loss = total_loss / (step + 1e-8)
 
             if step % 500 == 49:
                 print()
-                print(f"Loss: {total_loss / step}", end="\r")
-                metrics_holder.add_loss_to_last_epoch(total_loss / step)
+                print(f"Loss: {normalized_loss}", end="\r")
+                metrics_holder.add_loss_to_last_epoch(normalized_loss)
 
             if (step + 1) % gradient_accumulation_steps == 0:
                 scaler.unscale_(optimizer)
@@ -202,10 +226,10 @@ def _train(
         metrics_holder.set_result_metrics_to_last_epoch(metrics_result)
         metrics_holder.set_prediction_metrics_to_last_epoch(metrics_prediction)
 
-        print("Metrics Result (MD Task)")
+        print("Metrics Result (MD Task)")  # Bevorzugt groeße Sätze
         print(metrics_result.get_summary())
 
-        print("Metrics Prediction (Graph prediction Task)")
+        print("Metrics Prediction (Graph prediction Task)")  # Generlaisierter
         print(metrics_prediction.get_summary())
 
         metric = mean(
@@ -217,7 +241,12 @@ def _train(
             )
         )
 
-        if metrics_prediction.get_metric(config.metric_type) > metric:
+        if (
+            locals()[f"metrics_{config.best_model_eval_type}"].get_metric(
+                config.metric_type
+            )
+            > metric
+        ):
             print("New Model is Best")
             metrics_holder.set_last_epoch_as_best()
 
@@ -265,7 +294,32 @@ def _train(
                         )
                     ).get_summary()
                 )
-        if metrics_holder.best_epoch_index - i > 2:
+        checkpoint_data = {
+            "epoch": i,
+            "net_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+        }
+
+        with tempfile.TemporaryDirectory() as checkpoint_dir:
+            data_path = Path(checkpoint_dir) / "data.pkl"
+            with open(data_path, "wb") as fp:
+                pickle.dump(checkpoint_data, fp)
+
+            checkpoint = Checkpoint.from_directory(checkpoint_dir)
+            ray.train.report(
+                {
+                    "loss": normalized_loss,
+                    "result_f1": metrics_result.get_f1(),
+                    "result_precission": metrics_result.get_precision(),
+                    "result_recall": metrics_result.get_recall(),
+                    "prediction_f1": metrics_prediction.get_f1(),
+                    "prediction_precission": metrics_prediction.get_precision(),
+                    "prediction_recall": metrics_prediction.get_recall(),
+                },
+                checkpoint=checkpoint,
+            )
+
+        if i - metrics_holder.best_epoch_index > 2:
             print()
             print("No Improvement in 2 epochs. Stopping training.")
             print("Best Epoch: ", metrics_holder.best_epoch_index)
@@ -273,24 +327,60 @@ def _train(
     return next(iter(metrics_holder.get_best_epoch().result_metrics.values()))
 
 
+def train_full_hyper(config: Dict[str, object], default_config: Config):
+
+    updated_config = default_config.to_dict()  # Convert default_config to dict
+    updated_config.update(config)  # Update it with config
+    cfg = Config.from_dict(updated_config)  # Create a new Config object
+    train_full(cfg, False)  # Train with the updated configuration
+
+
 if __name__ == "__main__":
     freeze_support()
-    train_full(
-        Config(
-            depth=1,
-            datasets=list(Dataset),
-            systems=[
-                System.BABEFLY,
-                System.DBPEDIA_SPOTLIGHT,
-                System.OPEN_TAPIOCA,
-                System.REFINED_MD_PROPERTIES,
-                System.REL_MD_PROPERTIES,
-                System.SPACY_MD_PROPERTIES,
-                System.TAGME,
-                System.TEXT_RAZOR,
-            ],
-            epochs=20,
-        ),
-        True,
-        True,
+    max_epochs = 20
+    default_config = Config(
+        datasets=list(Dataset),
+        systems=[
+            System.BABEFLY,
+            System.DBPEDIA_SPOTLIGHT,
+            System.REFINED_MD_PROPERTIES,
+            System.REL_MD_PROPERTIES,
+            System.SPACY_MD_PROPERTIES,
+            System.TAGME,
+            System.TEXT_RAZOR,
+        ],
+        epochs=max_epochs,
+        metric_type=MetricType.F1,
     )
+
+    config = {
+        "model_depth": tune.choice([1, 2, 4, 8]),
+        "model_hidden_layer_size": tune.choice([2**i for i in range(7, 11)]),
+        "best_model_eval_type": tune.choice(["result", "prediction"]),
+        "threshold": tune.uniform(0.1, 0.9),
+    }
+    scheduler = ASHAScheduler(
+        metric="loss",  # TODO Fix becuas eprep tpye
+        mode="min",
+        max_t=max_epochs,
+        grace_period=1,
+        reduction_factor=2,
+    )
+    result = tune.run(
+        partial(train_full_hyper, default_config=default_config),
+        resources_per_trial={"cpu": 24, "gpu": 2},
+        config=config,
+        # num_samples=num_samples,
+        scheduler=scheduler,
+    )
+
+    best_trial = result.get_best_trial("loss", "min", "last")
+    print(f"Best trial config: {best_trial.config}")
+    itertools.product(["prediction", "result"], ["f1", "precision", "recall"])
+    for i in ["loss"] + [
+        "_".join(x)
+        for x in itertools.product(
+            ["prediction", "result"], ["f1", "precision", "recall"]
+        )
+    ]:
+        print(f"Best trial final validation {i}: {best_trial.last_result[i]}")

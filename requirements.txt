@@ -16,6 +16,8 @@ transformers==4.38.1
 numpy
 matplotlib
 pandas
+ray[tune]
+seaborn
 
 ujson
 lmdb

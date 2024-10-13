@@ -1,7 +1,6 @@
 from operator import attrgetter
-import random
 import os
-from typing import Dict, List
+from typing import List
 from time import time
 
 from tqdm.auto import tqdm
