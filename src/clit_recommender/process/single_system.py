@@ -77,5 +77,5 @@ class SingleSystem:
 
 
 if __name__ == "__main__":
-    single_system = SingleSystem(list(Dataset), save=False)
-    single_system.run_all()
+    single_system = SingleSystem([Dataset.NEWS_100])
+    single_system.run(System.SPACY_MD_PROPERTIES)

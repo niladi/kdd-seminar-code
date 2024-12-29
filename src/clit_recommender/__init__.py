@@ -9,8 +9,8 @@ print("Set Manual Seed to", _seed)
 seed(_seed)
 manual_seed(_seed)
 
-
-DATA_PATH = "/Users/niladi/workspace/seminar-kdd/code/data"
+WORKSPACE_PATH = "/Users/niladi/workspace/kit/seminar-kdd/code"
+DATA_PATH = f"{WORKSPACE_PATH}/data"
 MD_ONLY = f"{DATA_PATH}/2024-05-14/MDOnly"
 MD_ONLY_MEDMENTION_PATH = f"{DATA_PATH}/2024-07-28/MDOnly"
 MEDMENTION_PATH = f"{DATA_PATH}/medmentions"

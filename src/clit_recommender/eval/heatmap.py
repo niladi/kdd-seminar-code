@@ -38,10 +38,11 @@ def create_systems_x2_used(
     df = df.loc[:, (df != 0).any(axis=0)]
     df = df.loc[(df != 0).any(axis=1), :]
 
-    # Rescale the numbers by dividing by 1000
     df = df / len(systems)
 
-    mask = np.triu(np.ones_like(df, dtype=bool))
+    # Rescale the numbers by dividing by 1000
+
+    mask = np.triu(np.ones_like(df, dtype=bool), k=1)
 
     ax = sns.heatmap(
         df,

@@ -13,6 +13,8 @@ sparqlwrapper
 
 torch
 transformers==4.38.1
+tensorboard
+tensorboardX
 numpy
 matplotlib
 pandas

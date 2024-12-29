@@ -29,7 +29,8 @@ class Config:
     systems: Optional[List[System]] = enum_list_default(System)
     metric_type: MetricType = MetricType.F1
     md_modules_count: int = len(list(System))
-    best_model_eval_type: Literal["result", "prediction"] = "prediction"
+    best_model_eval_type: Literal["result", "prediction"] = "result"
+    progess: bool = True
     model_depth: int = 1
     model_hidden_layer_size: int = 512
 
@@ -53,9 +54,7 @@ class Config:
             ]
 
     def create_name(self) -> str:
-        return (
-            f"Clit-Recommender-Experiment-{int(time())}-{self.metric_type.name.lower()}"
-        )
+        return f"ReCoLTe-Experiment-{int(time())}-{self.metric_type.name.lower()}"
 
     def calculate_output_size(self) -> int:
         i = self.md_modules_count
