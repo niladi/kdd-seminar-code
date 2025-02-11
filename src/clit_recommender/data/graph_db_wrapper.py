@@ -22,7 +22,8 @@ class GraphDBWrapper:
         dataset_type: DatasetSplitType = DatasetSplitType.ALL,
     ) -> None:
         self._client = SPARQLWrapper(
-            "http://localhost:7200/repositories/KDD", returnFormat=JSON
+            #http://localhost:7200/repositories/KDD
+            "http://localhost:7200/repositories/", returnFormat=JSON
         )
 
         self._datasets = list(map(lambda s: f"<{dataset_type.get_uri(s)}>", datasets))
