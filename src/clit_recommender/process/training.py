@@ -67,6 +67,7 @@ def _offline_data(config: Config):
     print("Offline Data. Done.")
 
 
+# zero-shot: evaluating on datasets we didn't train on at all
 def cross_train(
     config: Config,
     training_sets: List[Dataset],
@@ -192,6 +193,8 @@ def _train(
                     else:
                         loss += output.loss
 
+                # batch normalization for generalization of multiple possible best graphs 
+                # for the same datapoint/input
                 loss = loss / len(batch)
             if (
                 gradient_accumulation_steps >= 1
@@ -339,6 +342,7 @@ def train_full_hyper(config: Dict[str, object], default_config: Config):
 
 
 if __name__ == "__main__":
+    # This does hyperparam optimization
     freeze_support()
     max_epochs = 20
     default_config = Config(

@@ -13,6 +13,7 @@ from typing import Dict, Iterator, List
 
 
 class ClitResultDataset(IterableDataset):
+    # These are the results coming from Ayoub's experiments (these are the outputs of annotating with different systems)
     _index_map: Dict[str, int]
     _config: Config
     _graph_db_wrapper: GraphDBWrapper

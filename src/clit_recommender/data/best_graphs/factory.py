@@ -107,28 +107,72 @@ class BestGraphFactory(BestGraphIO):
             _amount = len(list(System))
             used = _graph_db_wrapper.get_systems_on_datasets()
             _c = Config(
+                # depth should always be 1 (>1 would be highly complex interactions)
                 depth=1,
+                # Has to be initialised false since we are doing it here
                 load_best_graph=False,
                 batch_size=16,
+                # Just for the current dataset
+                # Main reason to create it, so it knows what dataset to do it
                 datasets=[dataset],
                 systems=self.config.systems,
             )
             index_map = _c.get_index_map()
+            # ClitResultDataset is dataset without best graph
             d = ClitResultDataset(_c)
             index = []
+            # used = systems in use
             for u in used:
                 if u in index_map:
                     index.append(index_map.get(u))
+
             _t = torch.zeros(_amount)
+            # Aka. systems we want our recommender to use
+            # If we don't want a system to be used, set it to 0, 
+            # but best graph must then be recomputed
             _t[index] = 1
 
+            # Generates ALL permutations and then we filter afterwards
+            # a single tensor can be: 0111101
             _tensors = self.generate_tensors(_amount)  # should be cached
 
             print(len(_tensors))
+            # Filter out all of the ones we don't want
+            # x.sum()
+            # _t = which systems we want (e.g. 0, 0, 1, 1, 1)
+            # x * _t = element-wise multiplication to set to 0 the ones that are not in the combo 
+            # or they are not wanted
+            # 
+            # The amount of 1s (implicitly 0s) has to be the same before and after the element-wise multiplication
+            # 
+            # import numpy as np
+            # f = np.array([1, 1, 0])  # -> _t
+            # x = np.array(
+                # [
+                    # [0, 0, 0], # -> y
+                    # [0, 0, 1],# -> n
+                    # [0, 1, 0],# -> y
+                    # [0, 1, 1],# -> n
+                    # [1, 0, 0],# -> y
+                    # [1, 0, 1],# -> n
+                    # [1, 1, 0],# -> y
+                    # [1, 1, 1],# -> #
+                # ]
+            # )
+
+            # print(list(filter(lambda y: y.sum() == (f * y).sum(), x)))
+            #
+            # [array([0, 0, 0]), array([0, 1, 0]), array([1, 0, 0]), array([1, 1, 0])]
+
+            ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+            ## IDEA: Set that the sum of the 1s has to be the exact fixed length that we want
+            ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+            # Niklas' suggestion: list(filter(lambda y: y.sum() == fixed_size_combo, x))
+            # fixed_size_combo = self.config.fixed_size_combo
             _tensors = list(filter(lambda x: x.sum() == (x * _t).sum(), _tensors))
             print(len(_tensors))
 
-            # Combine tensor lists using itertools
+            # Combine tensor lists using itertools into permutations
             _combined_tensors = itertools.product(
                 [[]], _tensors, [IntersectionNode, UnionNode, MajorityVoting]
             )
@@ -137,11 +181,12 @@ class BestGraphFactory(BestGraphIO):
 
             for _combined_tensor in tqdm(_combined_tensors, total=len(_tensors) * 3):
                 _graphs.append(
+                    # this is the mock
                     Graph.create_1_dim(
                         _c,
-                        _combined_tensor[0],
-                        _combined_tensor[1],
-                        _combined_tensor[2],
+                        _combined_tensor[0],# empty list
+                        _combined_tensor[1],# tensor
+                        _combined_tensor[2],# types of aggregation
                     )
                 )
 

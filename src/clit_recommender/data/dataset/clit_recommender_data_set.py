@@ -21,6 +21,7 @@ from clit_recommender.domain.datasets import Dataset, DatasetSplitType
 
 
 class ClitRecommenderDataSet(ClitResultDataset):
+    # Same results as clit_result_dataset and embeddings (LMDB - a kind of datastore)
     _lmdb: LmdbImmutableDict
 
     def __init__(
@@ -60,6 +61,7 @@ class ClitRecommenderDataSet(ClitResultDataset):
 
 
 class ClitRecommenderDynamicBatchDataSet(ClitResultDataset):
+    # 
     _lmdb: LmdbImmutableDict
 
     def __init__(

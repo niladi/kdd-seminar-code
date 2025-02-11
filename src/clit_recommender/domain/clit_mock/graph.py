@@ -135,8 +135,11 @@ class Graph:
     @staticmethod
     def create_1_dim(
         config: Config,
+        # ignored for depth=1
         value_matrix: GraphPresentation,
+        # this is what's done for final depth
         last_level_values: Union[List[float], Tensor, Tuple[float, ...]],
+        # it's either a combine node or an int (0, 1, 2) aka. )
         last_level_type: Union[Type[CombinedNode], int],
     ):
         assert int(config.calculate_output_size() / 3 - len(value_matrix)) == len(

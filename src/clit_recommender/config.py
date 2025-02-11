@@ -33,6 +33,7 @@ class Config:
     progess: bool = True
     model_depth: int = 1
     model_hidden_layer_size: int = 512
+    fixed_size_combo: int = -1
 
     def __post_init__(self):
         if self.experiment_name is None:
