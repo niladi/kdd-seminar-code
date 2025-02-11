@@ -148,16 +148,16 @@ class BestGraphFactory(BestGraphIO):
             # import numpy as np
             # f = np.array([1, 1, 0])  # -> _t
             # x = np.array(
-                # [
-                    # [0, 0, 0], # -> y
-                    # [0, 0, 1],# -> n
-                    # [0, 1, 0],# -> y
-                    # [0, 1, 1],# -> n
-                    # [1, 0, 0],# -> y
-                    # [1, 0, 1],# -> n
-                    # [1, 1, 0],# -> y
-                    # [1, 1, 1],# -> #
-                # ]
+            #     [
+            #         [0, 0, 0], # -> y
+            #         [0, 0, 1],# -> n
+            #         [0, 1, 0],# -> y
+            #         [0, 1, 1],# -> n
+            #         [1, 0, 0],# -> y
+            #         [1, 0, 1],# -> n
+            #         [1, 1, 0],# -> y
+            #         [1, 1, 1],# -> #
+            #     ]
             # )
 
             # print(list(filter(lambda y: y.sum() == (f * y).sum(), x)))
@@ -170,6 +170,11 @@ class BestGraphFactory(BestGraphIO):
             # Niklas' suggestion: list(filter(lambda y: y.sum() == fixed_size_combo, x))
             # fixed_size_combo = self.config.fixed_size_combo
             _tensors = list(filter(lambda x: x.sum() == (x * _t).sum(), _tensors))
+            if self.config.fixed_size_combo is not None and self.config.fixed_size_combo > 0:
+                # Filters out any combination that does not fit the exact desired length
+                # fixed length implies only exactly this many combinations should be used
+                print("Setting fixed length ")
+                _tensors = list(filter(lambda y: y.sum() == self.config.fixed_size_combo, _tensors))
             print(len(_tensors))
 
             # Combine tensor lists using itertools into permutations
