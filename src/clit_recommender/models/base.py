@@ -12,7 +12,7 @@ from clit_recommender.domain.model_result import ModelResult
 class ClitRecommenderModel(ABC, nn.Module):
 
     _config: Config
-    _embedding_size: int
+    _embedding_size: int  # Input Data Size
 
     def __init__(self, config: Config) -> None:
         super().__init__()
