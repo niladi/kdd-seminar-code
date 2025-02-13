@@ -24,7 +24,7 @@ class ClitResultDataset(IterableDataset):
         super().__init__()
 
         self._graph_db_wrapper = GraphDBWrapper(
-            config.datasets, config.systems, split_type
+            config, split_type
         )
         self._index_map = config.get_index_map()
         self._config = config
