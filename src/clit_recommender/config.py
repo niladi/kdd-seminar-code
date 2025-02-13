@@ -15,6 +15,8 @@ from clit_recommender import DATA_PATH
 @dataclass_json
 @dataclass
 class Config:
+    graphdb_address = "http://localhost:7200/repositories/ReCoLTeDB"
+    #http://localhost:7200/repositories/KDD
     epochs: int = 20
     batch_size: int = 1
     depth: int = 1

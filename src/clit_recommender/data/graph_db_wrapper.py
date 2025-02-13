@@ -4,30 +4,32 @@ from SPARQLWrapper import JSON, SPARQLWrapper
 
 from clit_recommender.domain.datasets import Dataset, DatasetSplitType
 from clit_recommender.domain.systems import System
-
+from clit_recommender.config import Config
 
 ACTUAL_KEY = "ACTUAL"
 
 
 class GraphDBWrapper:
-
     _client: SPARQLWrapper
     _datasets: List[str]
     _systems: List[str]
 
     def __init__(
         self,
-        datasets: List[Dataset] = list(Dataset),
-        systems: List[System] = list(System),
+        #datasets: List[Dataset] = list(Dataset),
+        # Grab datasets and GraphDB repo address through it
+        config: Config,
+        #systems: List[System] = list(System),
         dataset_type: DatasetSplitType = DatasetSplitType.ALL,
     ) -> None:
         self._client = SPARQLWrapper(
             #http://localhost:7200/repositories/KDD
-            "http://localhost:7200/repositories/", returnFormat=JSON
+            #"http://localhost:7200/repositories/ReCoLTeDB"
+            config.graphdb_address, returnFormat=JSON
         )
 
-        self._datasets = list(map(lambda s: f"<{dataset_type.get_uri(s)}>", datasets))
-        self._systems = list(map(lambda s: f"<{s.uri}>", systems))
+        self._datasets = list(map(lambda s: f"<{dataset_type.get_uri(s)}>", config.datasets))
+        self._systems = list(map(lambda s: f"<{s.uri}>", config.systems))
 
     def _query(self, query: str):
         query = f"""
@@ -117,7 +119,11 @@ class GraphDBWrapper:
 
 
 if __name__ == "__main__":
-    g = GraphDBWrapper([Dataset.MED_MENTIONS])
+    _c = Config(
+        datasets=[Dataset.MED_MENTIONS]
+    )
+
+    g = GraphDBWrapper(_c)
     print(len(g.get_all_systems()))
     print(len(g.get_systems_on_datasets()))
     # print(g.get_count())
@@ -126,5 +132,8 @@ if __name__ == "__main__":
 
 
 if __name__ == "__main__":
-    wrapper = GraphDBWrapper([])
+    _c = Config(
+        datasets=[Dataset.MED_MENTIONS]
+    )
+    wrapper = GraphDBWrapper(_c)
     print(wrapper.get_all_systems())

@@ -68,6 +68,8 @@ class BestGraphFactory(BestGraphIO):
             if current_metric.get_metric(
                 self.config.metric_type
             ) == best_metric.get_metric(self.config.metric_type):
+                # Same metric score, so take smaller one
+                # Takes the smallest size aka. with the least necessary combinations
                 if current_size < best_size:
                     best_results = [graph]
                     best_size = current_size
@@ -76,6 +78,7 @@ class BestGraphFactory(BestGraphIO):
             elif current_metric.get_metric(
                 self.config.metric_type
             ) > best_metric.get_metric(self.config.metric_type):
+                # new one is better, so take it
                 best_results = [graph]
                 best_metric = current_metric
                 best_size = current_size
@@ -102,10 +105,6 @@ class BestGraphFactory(BestGraphIO):
             best_graph = self.load_dict()
 
         for dataset in tqdm(self.config.datasets):
-            _graph_db_wrapper = GraphDBWrapper([dataset])
-
-            _amount = len(list(System))
-            used = _graph_db_wrapper.get_systems_on_datasets()
             _c = Config(
                 # depth should always be 1 (>1 would be highly complex interactions)
                 depth=1,
@@ -117,6 +116,11 @@ class BestGraphFactory(BestGraphIO):
                 datasets=[dataset],
                 systems=self.config.systems,
             )
+            _graph_db_wrapper = GraphDBWrapper(_c)
+
+            _amount = len(list(System))
+            used = _graph_db_wrapper.get_systems_on_datasets()
+
             index_map = _c.get_index_map()
             # ClitResultDataset is dataset without best graph
             d = ClitResultDataset(_c)

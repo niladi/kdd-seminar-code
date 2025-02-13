@@ -1,0 +1,46 @@
+We have enroot
+
+#!/bin/bash
+#SBATCH --time=48:00:00
+#SBATCH --gres=gpu:1
+
+# ONLY NEEDED AT FIRST RUN. THIS CONVERTS THE DOCKER CONTAINER TO ENROOT AND WILL TAKE A WHILE
+#Commands:
+enroot import "docker://ontotext/graphdb:10.6.3"
+# Look at the file location/name, in this case it was "ontotext+graphdb+10.6.3.sqsh"
+#enroot create --name recoltegraphdb ontotext+graphdb+10.6.3.sqsh
+
+# Now to actually start the GraphDB Instance!
+enroot start --rw recoltegraphdb \
+--env graphdb.health.minimal.free.storage.enabled=false \
+--env graphdb.health.minimal.free.storage.asyncCheck=false \
+--env graphdb.health.minimal.free.storage.fatal=1 \
+--env graphdb.workbench.importDirectory=/mnt/webscistorage/wf7467/recolte/graph-dump \
+--port 7200 \
+--volume /mnt/webscistorage/wf7467/graphdb-import:/mnt/webscistorage/wf7467/graphdb-import
+--volume ./data/docker/data:/opt/graphdb/home/ \
+--volume ./data/docker/import:/root/graphdb-import \
+
+nslookup aifb-websci-gpunode3.aifb.kit.edu
+	--> get the IP address (e.g. 129.13.152.68)
+Open browser to <IP>:7200 
+	--> Import (Create repositories: graphDB, chose an ID, NEXT)
+Click on Repository --> Import RDF --> Server Files --> "? Help" --> Server Files 
+-->  "Put files or directories you want to import into /mnt/webscistorage/wf7467/graphdb-import. "
+cd /mnt/webscistorage/wf7467/graphdb-import
+
+Upload dump to /mnt/webscistorage/wf7467/graphdb-import
+
+graphdb.workbench.importDirectory
+failed at figuring it out, switched to other method.
+
+
+Get RDF from a URL: 
+-> https://bwsyncandshare.kit.edu/s/JNmdNLDBazNTttX/download/full_data_dump.ttl
+
+
+
+
+nano kdd-seminar-code/src/clit_recommender/data/graph_db_wrapper.py
+Adapt IP Address to whatever nslookup says
+nslookup aifb-websci-gpunode3.aifb.kit.edu

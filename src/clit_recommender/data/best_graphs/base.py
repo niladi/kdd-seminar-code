@@ -24,3 +24,7 @@ class BestGraphBase:
                 ),
                 config.metric_type.lower(),
             )
+        if config.fixed_size_combo > 0:
+            self.path = join(self.path, f"fixed_size_combo_{config.fixed_size_combo}")
+        #if config.margin_range > 0:
+        #    self.path = join(self.path, f"margin_range_{config.margin_range")
