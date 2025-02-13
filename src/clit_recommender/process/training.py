@@ -15,6 +15,7 @@ from ray import tune
 
 from ray.train import Checkpoint, get_checkpoint
 from ray.tune.schedulers import ASHAScheduler
+from ray.air.config import RunConfig
 
 import ray.cloudpickle as pickle
 
@@ -179,7 +180,7 @@ def _train(
 
         itr_train = (
             tqdm(enumerate(train), total=len(train))
-            if config.progess
+            if config.progress
             else enumerate(train)
         )
         for step, batch in itr_train:
@@ -204,7 +205,7 @@ def _train(
             normalized_loss = total_loss / (step + 1e-8)
 
             if step % 500 == 49:
-                if config.progess:
+                if config.progress:
                     print()
                     print(f"Loss: {normalized_loss}", end="\r")
                 metrics_holder.add_loss_to_last_epoch(normalized_loss)
@@ -221,7 +222,7 @@ def _train(
         metrics_prediction = Metrics.zeros()
 
         graphs = []
-        itr_eval = tqdm(eval) if config.progess else eval
+        itr_eval = tqdm(eval) if config.progress else eval
         for batch in itr_eval:
             res = evaluator.process_dynamic_batch(batch)
             metrics_result += res[0]
@@ -231,11 +232,12 @@ def _train(
         metrics_holder.set_result_metrics_to_last_epoch(metrics_result)
         metrics_holder.set_prediction_metrics_to_last_epoch(metrics_prediction)
 
-        print("Metrics Result (MD Task)")  # Bevorzugt groeße Sätze
-        print(metrics_result.get_summary())
+        if config.progress:
+            print("Metrics Result (MD Task)")  # Bevorzugt groeße Sätze
+            print(metrics_result.get_summary())
 
-        print("Metrics Prediction (Graph prediction Task)")  # Generlaisierter
-        print(metrics_prediction.get_summary())
+            print("Metrics Prediction (Graph prediction Task)")  # Generlaisierter
+            print(metrics_prediction.get_summary())
 
         best_metric = mean(
             list(
@@ -354,13 +356,13 @@ if __name__ == "__main__":
         ],
         epochs=max_epochs,
         metric_type=MetricType.F1,
-        progess=False,
+        progress=False,
     )
 
     config = {
-        "model_depth": tune.choice([1, 2, 4]),
-        "model_hidden_layer_size": tune.choice([2**i for i in range(6, 11)]),
-        "best_model_eval_type": tune.choice(["result", "prediction"]),
+        "model_depth": tune.grid_search([1, 2, 4]),
+        "model_hidden_layer_size": tune.grid_search([2**i for i in range(6, 11)]),
+        "best_model_eval_type": tune.grid_search(["result", "prediction"]),
         "threshold": tune.uniform(0.1, 0.9),
     }
 
@@ -374,23 +376,36 @@ if __name__ == "__main__":
         grace_period=2,
         reduction_factor=2,
     )
+    reporter = tune.CLIReporter(max_progress_rows=10)
 
-    result = tune.run(
-        partial(train_full_hyper, default_config=default_config),
-        resources_per_trial={"cpu": 24, "gpu": 2},
-        config=config,
-        # num_samples=num_samples,
-        scheduler=scheduler,
-        storage_path=f"{WORKSPACE_PATH}/logs",
+    # Set up the Tuner
+    tuner = tune.Tuner(
+        tune.with_resources(
+            partial(train_full_hyper, default_config=default_config),
+            resources={"cpu": 24, "gpu": 2},
+        ),
+        param_space=config,
+        tune_config=tune.TuneConfig(
+            scheduler=scheduler,
+            num_samples=10,  # You can adjust this if needed
+        ),
+        run_config=RunConfig(
+            storage_path=f"{WORKSPACE_PATH}/logs",
+            progress_reporter=reporter,
+        ),
     )
 
-    best_trial = result.get_best_trial(optimizing_method, optimizing_mode, "last")
+    # Fit the model using the Tuner
+    result = tuner.fit()
+
+    best_trial = result.get_best_result(optimizing_method, optimizing_mode, "last")
     print(f"Best trial config: {best_trial.config}")
     itertools.product(["prediction", "result"], ["f1", "precision", "recall"])
-    for _i in ["loss"] + [
-        "_".join(x)
-        for x in itertools.product(
-            ["prediction", "result"], ["f1", "precision", "recall"]
-        )
-    ]:
-        print(f"Best trial final validation {_i}: {best_trial.last_result[_i]}")
+    # for _i in ["loss"] + [
+    # "_".join(x)
+    # for x in itertools.product(
+    # ["prediction", "result"], ["f1", "precision", "recall"]
+    # )
+    # ]:
+    # print(f"Best trial final validation {_i}: {best_trial.metrics[_i]}")
+    print(best_trial.metrics_dataframe)

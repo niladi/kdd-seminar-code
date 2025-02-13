@@ -22,6 +22,7 @@ class ClitRecommenderLoss(nn.Module):
         return 1 - metrics.get_f1()
 
 
+# Multi Level/ Depth
 class ClitRecommenderModelFull(ClitRecommenderModel):
     _loss: ClitRecommenderLoss
 

@@ -24,10 +24,12 @@ class ClitRecommenderModelOneDepth(ClitRecommenderModel):
 
         self._hidden_layer = nn.Sequential(*layers)
 
-        self._classification_layer = nn.Linear(h_size, 3, device=config.device)
+        self._classification_layer = nn.Linear(
+            h_size, 3, device=config.device
+        )  # Combination Type, TODO if additional CombinationMethod
         self._multi_label_layer = nn.Linear(
             h_size, config.md_modules_count, device=config.device
-        )
+        )  # which Systems
 
     def forward(self, embeddings: Tensor, data_row: DataRowWithBestGraph):
         embeddings = embeddings.to(self._config.device).view(-1)
@@ -56,6 +58,6 @@ class ClitRecommenderModelOneDepth(ClitRecommenderModel):
             [],
             multi_label_output.sigmoid(),
             classification_output.softmax(dim=0).argmax().item(),
-        )
+        )  # Predicted Graph or Pipeline
 
         return ModelResult(graph.to_matrix(), total_loss)

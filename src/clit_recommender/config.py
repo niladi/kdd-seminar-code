@@ -30,7 +30,7 @@ class Config:
     metric_type: MetricType = MetricType.F1
     md_modules_count: int = len(list(System))
     best_model_eval_type: Literal["result", "prediction"] = "result"
-    progess: bool = True
+    progress: bool = True
     model_depth: int = 1
     model_hidden_layer_size: int = 512
 
