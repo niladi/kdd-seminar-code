@@ -62,7 +62,8 @@ class BestGraphFactory(BestGraphIO):
         # Track metrics
         best_scores = []
         # "How much better" does it have to be?
-        margin: float = self.config.margin_range
+        # Margin HAS to be >=0
+        margin: float = max(self.config.margin_range, 0.0)
         best_size = 0
         actual = set(row.actual)
 
@@ -109,6 +110,7 @@ class BestGraphFactory(BestGraphIO):
                 # Now for the best_results, best_scores and best_size updates
 
 
+                # Margin check - Keep track of the prior results and scores to make a margin check
                 prev_results = best_results
                 prev_scores = best_scores
 
@@ -125,11 +127,11 @@ class BestGraphFactory(BestGraphIO):
                     _tmp_scores = []
                     # The difference is within margin, so we have to check our prior choices
                     # max unnecessary, but just in case of logic mishap
-                    min_score = max(current_score, best_score) - margin
+                    min_score = max(max(current_score, best_score) - margin, 0.0)
                     for i, score in enumerate(prev_scores):
                         if score >= min_score:
                             _tmp_results.append(prev_results[i])
-                            _tmp_scores.append(prev_scores[i])
+                            _tmp_scores.append(  prev_scores[i])
                             # Could also use "_tmp_scores.append(score), but this way it's a bit easier for others to understand
                     best_results.extend(_tmp_results)
                     best_scores.extend(_tmp_scores)
