@@ -17,7 +17,7 @@ if __name__ == "__main__":
         System.TAGME,
         System.TEXT_RAZOR,
     ]
-    _config.fixed_size_combo = 2
+    _config.fixed_size_combo = 3
 
     # _config.threshold = 0.3
     train_full(_config, True, True)

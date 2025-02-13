@@ -9,7 +9,8 @@ print("Set Manual Seed to", _seed)
 seed(_seed)
 manual_seed(_seed)
 
-WORKSPACE_PATH = "/Users/niladi/workspace/kit/seminar-kdd/code"
+#WORKSPACE_PATH = "/Users/niladi/workspace/kit/seminar-kdd/code"
+WORKSPACE_PATH = "/mnt/webscistorage/wf7467/recolte/workspace_path"
 DATA_PATH = f"{WORKSPACE_PATH}/data"
 MD_ONLY = f"{DATA_PATH}/2024-05-14/MDOnly"
 MD_ONLY_MEDMENTION_PATH = f"{DATA_PATH}/2024-07-28/MDOnly"
